@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: notebook-api
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/notebook.db
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./frontend
+    container_name: notebook-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
