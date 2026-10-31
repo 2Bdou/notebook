@@ -2,7 +2,7 @@
   <div class="note-editor" @keydown="handleKeydown" @paste="handlePaste">
     <!-- 空状态 -->
     <div v-if="!noteStore.current" class="empty-editor">
-      <div class="empty-icon">📝</div>
+      <Icon name="notebook" :size="48" :stroke-width="1.2" class="empty-icon" />
       <p>选择或新建一篇笔记开始编辑</p>
     </div>
 
@@ -24,26 +24,26 @@
               :class="{ active: editMode === 'edit' }"
               title="编辑模式"
               @click="setEditMode('edit')"
-            >✏️</button>
+            ><Icon name="edit" :size="14" /></button>
             <button
               class="mode-btn"
               :class="{ active: editMode === 'dual' }"
               title="双栏模式"
               @click="setEditMode('dual')"
-            >📖</button>
+            ><Icon name="columns" :size="14" /></button>
             <button
               class="mode-btn"
               :class="{ active: editMode === 'preview' }"
               title="预览模式"
               @click="setEditMode('preview')"
-            >👁️</button>
+            ><Icon name="eye" :size="14" /></button>
           </div>
           <button
             class="btn-pin"
             :class="{ pinned: noteStore.current.is_pinned }"
             @click="togglePin"
           >
-            {{ noteStore.current.is_pinned ? '📌 已置顶' : '置顶' }}
+            {{ noteStore.current.is_pinned ? '已置顶' : '置顶' }}
           </button>
           <button class="btn-delete" @click="deleteNote">删除</button>
         </div>
@@ -130,7 +130,7 @@
       <!-- 底部状态栏：字数统计 + 保存状态 -->
       <div class="editor-footer">
         <span class="footer-left">
-          <span class="word-count">📄 {{ wordCount }} 字</span>
+          <span class="word-count">{{ wordCount }} 字</span>
           <span class="separator">|</span>
           <span class="mode-label">{{ modeLabel }}</span>
         </span>
@@ -146,6 +146,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useNoteStore } from '@/stores/note'
@@ -329,13 +330,13 @@ const saveStatusClass = computed(() => ({
 const saveStatusText = computed(() => {
   switch (saveStatus.value) {
     case 'saved':
-      return savedTime.value ? `✅ 已保存 ${savedTime.value}` : '✅ 已保存'
+      return savedTime.value ? `已保存 ${savedTime.value}` : '已保存'
     case 'saving':
-      return '⏳ 保存中...'
+      return '保存中...'
     case 'unsaved':
-      return '✏️ 编辑中...'
+      return '编辑中...'
     case 'error':
-      return `❌ 保存失败: ${errorMsg.value}`
+      return `保存失败: ${errorMsg.value}`
     default:
       return ''
   }
@@ -490,7 +491,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 .empty-editor {
   flex: 1;
@@ -498,7 +499,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--color-text-tertiary);
 }
 .empty-icon {
   font-size: 48px;
@@ -509,7 +510,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
 }
 .title-input {
   flex: 1;
@@ -534,7 +535,7 @@ onUnmounted(() => {
   gap: 2px;
   padding: 2px;
   border-radius: 6px;
-  background: #f5f5f5;
+  background: var(--color-bg);
 }
 .mode-btn {
   padding: 4px 8px;
@@ -546,10 +547,10 @@ onUnmounted(() => {
   transition: background 0.2s;
 }
 .mode-btn:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 .mode-btn.active {
-  background: #42b983;
+  background: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 .btn-pin,
@@ -557,23 +558,23 @@ onUnmounted(() => {
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 13px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
   cursor: pointer;
   transition: all 0.2s;
 }
 .btn-pin:hover {
-  border-color: #e6a23c;
-  color: #e6a23c;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 .btn-pin.pinned {
-  background: #fdf6ec;
-  border-color: #e6a23c;
-  color: #e6a23c;
+  background: var(--color-warning-light);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 .btn-delete:hover {
-  border-color: #f56c6c;
-  color: #f56c6c;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 /* 标签关联区域 */
 .tag-bar {
@@ -581,8 +582,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 20px;
-  border-bottom: 1px solid #eee;
-  background: #fafafa;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
   min-height: 36px;
 }
 .tag-bar-left {
@@ -594,7 +595,7 @@ onUnmounted(() => {
 }
 .tag-bar-label {
   font-size: 13px;
-  color: #999;
+  color: var(--color-text-tertiary);
   flex-shrink: 0;
 }
 /* 已关联标签芯片 */
@@ -603,8 +604,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: #e8f5e9;
-  color: #42b983;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 500;
@@ -614,18 +615,18 @@ onUnmounted(() => {
   background: none;
   cursor: pointer;
   font-size: 10px;
-  color: #42b983;
+  color: var(--color-primary);
   padding: 0;
   line-height: 1;
   opacity: 0.5;
 }
 .tag-remove:hover {
   opacity: 1;
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 .no-tags-hint {
   font-size: 12px;
-  color: #ccc;
+  color: var(--color-text-disabled);
 }
 /* 添加标签按钮 + 下拉 */
 .tag-bar-right {
@@ -637,12 +638,12 @@ onUnmounted(() => {
   border: 1px dashed #42b983;
   border-radius: 4px;
   background: transparent;
-  color: #42b983;
+  color: var(--color-primary);
   font-size: 12px;
   cursor: pointer;
 }
 .btn-add-tag:hover {
-  background: #e8f5e9;
+  background: var(--color-primary-light);
 }
 /* 标签下拉面板 */
 .tag-dropdown {
@@ -651,8 +652,8 @@ onUnmounted(() => {
   right: 0;
   margin-top: 4px;
   width: 240px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   z-index: 100;
@@ -663,25 +664,25 @@ onUnmounted(() => {
   display: flex;
   gap: 6px;
   padding: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
 }
 .tag-new-input {
   flex: 1;
   padding: 4px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 13px;
   min-width: 0;
 }
 .tag-new-input:focus {
-  border-color: #42b983;
+  border-color: var(--color-primary);
   outline: none;
 }
 .tag-new-btn {
   padding: 4px 8px;
   border: none;
   border-radius: 4px;
-  background: #42b983;
+  background: var(--color-primary);
   color: #fff;
   font-size: 12px;
   cursor: pointer;
@@ -705,16 +706,16 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .tag-dropdown-item:hover {
-  background: #f0f7f4;
+  background: var(--color-primary-bg);
 }
 .tag-dropdown-count {
   font-size: 11px;
-  color: #bbb;
+  color: var(--color-text-tertiary);
 }
 .tag-dropdown-empty {
   padding: 12px;
   font-size: 13px;
-  color: #ccc;
+  color: var(--color-text-disabled);
   text-align: center;
 }
 .editor-body {
@@ -727,10 +728,10 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-border);
   font-size: 12px;
-  color: #999;
-  background: #fafafa;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg);
 }
 .footer-left {
   display: flex;
@@ -741,7 +742,7 @@ onUnmounted(() => {
   color: #ddd;
 }
 .mode-label {
-  color: #bbb;
+  color: var(--color-text-tertiary);
 }
 .footer-right {
   display: flex;
@@ -752,16 +753,16 @@ onUnmounted(() => {
   font-weight: 500;
 }
 .status-saved {
-  color: #67c23a;
+  color: var(--color-success);
 }
 .status-saving {
-  color: #e6a23c;
+  color: var(--color-warning);
 }
 .status-unsaved {
-  color: #909399;
+  color: var(--color-text-tertiary);
 }
 .status-error {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 /* 暗色模式适配 */

@@ -2,14 +2,16 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-header">
-        <h1 class="login-title">📝 记事本</h1>
+        <Icon name="notebook" :size="36" :stroke-width="1.5" class="login-logo" />
+        <h1 class="login-title">记事本</h1>
         <p class="login-subtitle">{{ isRegister ? '创建账号' : '欢迎回来' }}</p>
       </div>
 
       <form class="login-form" @submit.prevent="handleSubmit">
         <div class="form-field">
-          <label class="field-label">用户名</label>
+          <label class="field-label" for="username">用户名</label>
           <input
+            id="username"
             v-model="username"
             type="text"
             class="field-input"
@@ -19,19 +21,31 @@
         </div>
 
         <div class="form-field">
-          <label class="field-label">密码</label>
-          <input
-            v-model="password"
-            type="password"
-            class="field-input"
-            placeholder="请输入密码"
-            :autocomplete="isRegister ? 'new-password' : 'current-password'"
-          />
+          <label class="field-label" for="password">密码</label>
+          <div class="password-wrapper">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              class="field-input"
+              placeholder="请输入密码"
+              :autocomplete="isRegister ? 'new-password' : 'current-password'"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+              @click="showPassword = !showPassword"
+            >
+              <Icon :name="showPassword ? 'eye-off' : 'eye'" :size="18" />
+            </button>
+          </div>
         </div>
 
         <div v-if="isRegister" class="form-field">
-          <label class="field-label">确认密码</label>
+          <label class="field-label" for="confirm-password">确认密码</label>
           <input
+            id="confirm-password"
             v-model="confirmPassword"
             type="password"
             class="field-input"
@@ -42,8 +56,9 @@
 
         <!-- 邀请码输入框（仅注册模式 + 后端要求时显示） -->
         <div v-if="isRegister && needRegCode" class="form-field">
-          <label class="field-label">邀请码</label>
+          <label class="field-label" for="reg-code">邀请码</label>
           <input
+            id="reg-code"
             v-model="registrationCode"
             type="text"
             class="field-input"
@@ -51,10 +66,11 @@
           />
         </div>
 
-        <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
+        <div v-if="errorMsg" class="error-msg" role="alert">{{ errorMsg }}</div>
 
         <button type="submit" class="btn-submit" :disabled="loading">
-          {{ loading ? '请稍候...' : (isRegister ? '注册' : '登录') }}
+          <Icon v-if="loading" name="loader" :size="18" class="spin" />
+          <span>{{ loading ? '请稍候...' : (isRegister ? '注册' : '登录') }}</span>
         </button>
       </form>
 
@@ -78,6 +94,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
+import Icon from '@/components/Icon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -89,6 +106,7 @@ const confirmPassword = ref('')
 const registrationCode = ref('')
 const errorMsg = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
 
 // 后端认证配置
 const allowRegistration = ref(true)
@@ -172,39 +190,46 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #1e2937 0%, #0f172a 100%);
+  padding: var(--space-4);
 }
 
 .login-card {
-  width: 380px;
-  max-width: 90vw;
-  background: #fff;
-  border-radius: 12px;
-  padding: 40px 32px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  max-width: 100%;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  box-shadow: var(--shadow-lg);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
+}
+
+.login-logo {
+  color: var(--color-primary);
+  margin-bottom: var(--space-3);
 }
 
 .login-title {
-  font-size: 28px;
-  color: #2c3e50;
-  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
 }
 
 .login-subtitle {
   font-size: 14px;
-  color: #95a5a6;
+  color: var(--color-text-tertiary);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .form-field {
@@ -215,46 +240,83 @@ async function handleSubmit() {
 
 .field-label {
   font-size: 13px;
-  color: #7f8c8d;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .field-input {
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 14px;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-fast);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
 }
 
 .field-input:focus {
+  border-color: var(--color-primary);
   outline: none;
-  border-color: #42b983;
+  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.15);
+}
+
+/* 密码显示/隐藏切换 */
+.password-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.password-toggle:hover {
+  color: var(--color-text-secondary);
 }
 
 .error-msg {
-  color: #e74c3c;
+  color: var(--color-danger);
   font-size: 13px;
   text-align: center;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
+  background: var(--color-danger-light);
+  border-radius: var(--radius-sm);
 }
 
 .btn-submit {
   width: 100%;
   padding: 12px;
-  background: #42b983;
+  background: var(--color-primary);
   color: #fff;
-  border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 8px;
+  transition: background var(--transition-fast);
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #369870;
+  background: var(--color-primary-hover);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btn-submit:disabled {
@@ -264,13 +326,13 @@ async function handleSubmit() {
 
 .login-footer {
   text-align: center;
-  margin-top: 24px;
+  margin-top: var(--space-6);
   font-size: 13px;
-  color: #95a5a6;
+  color: var(--color-text-tertiary);
 }
 
 .login-footer a {
-  color: #42b983;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -279,6 +341,16 @@ async function handleSubmit() {
 }
 
 .reg-closed-hint {
-  color: #e74c3c;
+  color: var(--color-danger);
+}
+
+/* 加载动画 */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

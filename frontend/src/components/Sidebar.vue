@@ -2,8 +2,14 @@
   <aside class="sidebar">
     <!-- 顶部标题与新建按钮 -->
     <div class="sidebar-header">
-      <h1 class="logo">📝 记事本</h1>
-      <button class="btn-new" @click="$emit('new')">+ 新建笔记</button>
+      <div class="logo-row">
+        <Icon name="notebook" :size="20" :stroke-width="1.8" class="logo-icon" />
+        <h1 class="logo">记事本</h1>
+      </div>
+      <button class="btn-new" @click="$emit('new')">
+        <Icon name="plus" :size="16" />
+        <span>新建笔记</span>
+      </button>
     </div>
 
     <!-- 全部笔记按钮 -->
@@ -13,7 +19,8 @@
         :class="{ active: !hasCategoryFilter && !hasTagFilter }"
         @click="showAllNotes"
       >
-        📋 全部笔记
+        <Icon name="list" :size="16" />
+        <span>全部笔记</span>
       </div>
     </div>
 
@@ -21,7 +28,9 @@
     <div class="section">
       <div class="section-header">
         <span class="section-title">分类</span>
-        <button class="btn-add" title="新建分类" @click="openCreateCategory">+</button>
+        <button class="btn-add" title="新建分类" aria-label="新建分类" @click="openCreateCategory">
+          <Icon name="plus" :size="14" />
+        </button>
       </div>
       <CategoryTree
         :categories="categoryStore.categories"
@@ -37,7 +46,9 @@
     <div class="section">
       <div class="section-header">
         <span class="section-title">标签</span>
-        <button class="btn-add" title="新建标签" @click="openCreateTag">+</button>
+        <button class="btn-add" title="新建标签" aria-label="新建标签" @click="openCreateTag">
+          <Icon name="plus" :size="14" />
+        </button>
       </div>
       <!-- 新建标签输入框 -->
       <div v-if="tagCreating" class="tag-create-form">
@@ -59,10 +70,13 @@
           :class="{ active: noteStore.filter.tag_id === tag.id }"
           @click="onSelectTag(tag.id)"
         >
-          <span class="tag-name"># {{ tag.name }}</span>
+          <Icon name="tag" :size="14" class="tag-icon" />
+          <span class="tag-name">{{ tag.name }}</span>
           <span class="tag-right">
             <span class="tag-count">{{ tag.note_count }}</span>
-            <button class="tag-del" title="删除标签" @click.stop="onDeleteTag(tag)">✕</button>
+            <button class="tag-del" title="删除标签" aria-label="删除标签" @click.stop="onDeleteTag(tag)">
+              <Icon name="x" :size="12" />
+            </button>
           </span>
         </li>
         <li v-if="!tagStore.tags.length && !tagCreating" class="empty-hint">暂无标签</li>
@@ -71,11 +85,16 @@
 
     <!-- 底部导航 -->
     <div class="sidebar-footer">
-      <router-link to="/trash" class="trash-link">🗑 回收站</router-link>
+      <router-link to="/trash" class="trash-link">
+        <Icon name="trash" :size="16" />
+        <span>回收站</span>
+      </router-link>
       <div class="user-info" v-if="authStore.user">
         <span class="user-avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</span>
         <span class="user-name">{{ authStore.user.username }}</span>
-        <button class="btn-logout" title="退出登录" @click="handleLogout">退出</button>
+        <button class="btn-logout" title="退出登录" aria-label="退出登录" @click="handleLogout">
+          <Icon name="logout" :size="16" />
+        </button>
       </div>
     </div>
 
@@ -93,6 +112,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import Icon from '@/components/Icon.vue'
 import CategoryTree from '@/components/CategoryTree.vue'
 import CategoryModal from '@/components/CategoryModal.vue'
 import { useNoteStore } from '@/stores/note'
@@ -126,26 +146,21 @@ function showAllNotes() {
 }
 
 // ==================== 分类操作 ====================
-// 弹窗状态
 const modalVisible = ref(false)
 const editingCategory = ref<Category | null>(null)
-// 新建子分类时的父分类 ID
 const addSubParentId = ref<number | null>(null)
 
-/** 打开新建分类弹窗 */
 function openCreateCategory() {
   editingCategory.value = null
   addSubParentId.value = null
   modalVisible.value = true
 }
 
-/** 选中分类（再次点击同一分类则取消） */
 function onSelectCategory(id: number) {
   const current = noteStore.filter.category_id
   noteStore.setCategoryFilter(current === id ? undefined : id)
 }
 
-/** 重命名分类 */
 async function onRenameCategory(id: number, name: string) {
   try {
     await categoryStore.updateCategory(id, { name })
@@ -154,12 +169,10 @@ async function onRenameCategory(id: number, name: string) {
   }
 }
 
-/** 删除分类 */
 async function onDeleteCategory(cat: Category) {
   if (!confirm(`确定删除分类「${cat.name}」？\n该分类下的笔记将变为未分类，子分类将变为根分类。`)) return
   try {
     await categoryStore.deleteCategory(cat.id)
-    // 如果删除的是当前过滤的分类，清除过滤
     if (noteStore.filter.category_id === cat.id) {
       noteStore.clearCategoryFilter()
     }
@@ -168,25 +181,20 @@ async function onDeleteCategory(cat: Category) {
   }
 }
 
-/** 新建子分类 — 打开弹窗并预设父分类 */
 function onAddSubCategory(parentId: number) {
   editingCategory.value = null
   addSubParentId.value = parentId
   modalVisible.value = true
 }
 
-/** 弹窗确认 — 创建或更新分类 */
 async function onModalConfirm(data: { name: string; parent_id: number | null }) {
   try {
     if (editingCategory.value) {
-      // 编辑模式
       await categoryStore.updateCategory(editingCategory.value.id, {
         name: data.name,
         parent_id: data.parent_id
       })
     } else {
-      // 新建模式
-      // 如果是通过"新建子分类"触发的，使用预设的父分类 ID
       const parentId = addSubParentId.value !== null ? addSubParentId.value : data.parent_id
       await categoryStore.createCategory({ name: data.name, parent_id: parentId })
     }
@@ -202,20 +210,17 @@ async function onModalConfirm(data: { name: string; parent_id: number | null }) 
 const tagCreating = ref(false)
 const newTagName = ref('')
 
-/** 打开新建标签输入框 */
 function openCreateTag() {
   tagCreating.value = true
   newTagName.value = ''
 }
 
-/** 确认创建标签 */
 async function confirmCreateTag() {
   const name = newTagName.value.trim()
   if (!name) {
     tagCreating.value = false
     return
   }
-  // 检查重名
   if (tagStore.findByName(name)) {
     alert('标签已存在')
     return
@@ -229,24 +234,20 @@ async function confirmCreateTag() {
   newTagName.value = ''
 }
 
-/** 取消创建标签 */
 function cancelCreateTag() {
   tagCreating.value = false
   newTagName.value = ''
 }
 
-/** 选中标签（再次点击同一标签则取消） */
 function onSelectTag(id: number) {
   const current = noteStore.filter.tag_id
   noteStore.setTagFilter(current === id ? undefined : id)
 }
 
-/** 删除标签 */
 async function onDeleteTag(tag: Tag) {
   if (!confirm(`确定删除标签「${tag.name}」？`)) return
   try {
     await tagStore.deleteTag(tag.id)
-    // 如果删除的是当前过滤的标签，清除过滤
     if (noteStore.filter.tag_id === tag.id) {
       noteStore.clearTagFilter()
     }
@@ -260,186 +261,270 @@ async function onDeleteTag(tag: Tag) {
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: #2c3e50;
-  color: #ecf0f1;
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  transition: width var(--transition-base);
 }
+
 .sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid #34495e;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-sidebar-border);
 }
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.logo-icon {
+  color: var(--color-primary);
+}
+
 .logo {
   font-size: 18px;
-  margin-bottom: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
 }
+
 .btn-new {
   width: 100%;
-  padding: 8px;
-  background: #42b983;
+  padding: 10px;
+  background: var(--color-primary);
   color: #fff;
-  border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 14px;
-  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: background var(--transition-fast);
+  min-height: 40px;
 }
+
 .btn-new:hover {
-  background: #369870;
+  background: var(--color-primary-hover);
 }
+
+.btn-new:active {
+  transform: scale(0.98);
+}
+
 .section {
-  padding: 8px 8px;
+  padding: var(--space-2);
 }
+
 /* 全部笔记按钮 */
 .all-notes-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
+  min-height: 36px;
 }
+
 .all-notes-btn:hover {
-  background: #34495e;
+  background: var(--color-sidebar-hover);
 }
+
 .all-notes-btn.active {
-  background: #42b983;
+  background: var(--color-primary);
   color: #fff;
 }
+
 /* 区块标题 */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
+  min-height: 28px;
 }
+
 .section-title {
   font-size: 12px;
-  color: #95a5a6;
+  color: var(--color-sidebar-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
+
 .btn-add {
-  border: none;
-  background: none;
-  color: #95a5a6;
-  font-size: 16px;
+  color: var(--color-sidebar-text-muted);
   cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
+
 .btn-add:hover {
-  color: #42b983;
+  color: var(--color-primary);
+  background: var(--color-sidebar-hover);
 }
+
 /* 标签列表 */
 .tag-list {
   list-style: none;
 }
+
 .tag-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--space-2);
   padding: 6px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  min-height: 32px;
+  transition: background var(--transition-fast);
 }
+
 .tag-item:hover {
-  background: #34495e;
+  background: var(--color-sidebar-hover);
 }
+
 .tag-item.active {
-  background: #42b983;
+  background: var(--color-primary);
+  color: #fff;
 }
+
+.tag-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tag-item.active .tag-icon {
+  opacity: 1;
+}
+
 .tag-name {
   font-size: 14px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  flex: 1;
 }
+
 .tag-right {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
+
 .tag-count {
   font-size: 12px;
-  color: #95a5a6;
-  background: #3e556e;
+  color: var(--color-sidebar-text-muted);
+  background: rgba(255, 255, 255, 0.08);
   padding: 1px 6px;
-  border-radius: 8px;
-  min-width: 18px;
+  border-radius: var(--radius-full);
+  min-width: 20px;
   text-align: center;
 }
+
 .tag-item.active .tag-count {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
 }
+
 .tag-del {
   display: none;
-  border: none;
-  background: none;
-  color: #bdc3c7;
-  font-size: 11px;
+  color: var(--color-sidebar-text);
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
   line-height: 1;
+  transition: color var(--transition-fast);
 }
+
 .tag-item:hover .tag-del {
-  display: inline;
+  display: inline-flex;
 }
+
 .tag-del:hover {
-  color: #e74c3c;
+  color: var(--color-danger);
+  background: rgba(231, 76, 60, 0.15);
 }
+
 /* 新建标签输入框 */
 .tag-create-form {
-  padding: 0 8px 6px;
+  padding: 0 var(--space-2) 6px;
 }
+
 .tag-input {
   width: 100%;
-  padding: 4px 8px;
-  border: 1px solid #42b983;
-  border-radius: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  background: #1a252f;
+  background: #0f172a;
   color: #fff;
   box-sizing: border-box;
 }
+
 .tag-input:focus {
   outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.15);
 }
+
 /* 空提示 */
 .empty-hint {
   padding: 6px 8px;
   font-size: 13px;
-  color: #7f8c8d;
+  color: var(--color-sidebar-text-muted);
 }
+
 /* 底部 */
 .sidebar-footer {
   margin-top: auto;
-  padding: 12px 16px;
-  border-top: 1px solid #34495e;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-sidebar-border);
 }
+
 .trash-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: 14px;
-  color: #bdc3c7;
-  text-decoration: none;
+  color: var(--color-sidebar-text);
+  padding: 6px 0;
+  min-height: 32px;
+  transition: color var(--transition-fast);
 }
+
 .trash-link:hover {
-  color: #fff;
+  color: #f1f5f9;
 }
+
 /* 用户信息区 */
 .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #34495e;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-sidebar-border);
 }
+
 .user-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #42b983;
+  background: var(--color-primary);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -448,23 +533,35 @@ async function onDeleteTag(tag: Tag) {
   justify-content: center;
   flex-shrink: 0;
 }
+
 .user-name {
   font-size: 14px;
-  color: #ecf0f1;
+  color: #e2e8f0;
   flex: 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
 .btn-logout {
-  font-size: 12px;
-  color: #95a5a6;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.15s;
+  color: var(--color-sidebar-text-muted);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
 }
+
 .btn-logout:hover {
-  color: #e74c3c;
+  color: var(--color-danger);
   background: rgba(231, 76, 60, 0.1);
+}
+
+/* 响应式：移动端侧边栏 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+  }
 }
 </style>
