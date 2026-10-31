@@ -40,6 +40,17 @@
           />
         </div>
 
+        <!-- 邀请码输入框（仅注册模式 + 后端要求时显示） -->
+        <div v-if="isRegister && needRegCode" class="form-field">
+          <label class="field-label">邀请码</label>
+          <input
+            v-model="registrationCode"
+            type="text"
+            class="field-input"
+            placeholder="请输入邀请码"
+          />
+        </div>
+
         <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
 
         <button type="submit" class="btn-submit" :disabled="loading">
@@ -52,19 +63,21 @@
           已有账号？
           <a href="#" @click.prevent="toggleMode">去登录</a>
         </span>
-        <span v-else>
+        <span v-else-if="allowRegistration">
           还没有账号？
           <a href="#" @click.prevent="toggleMode">去注册</a>
         </span>
+        <span v-else class="reg-closed-hint">注册已关闭，请联系管理员</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { authApi } from '@/api/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -73,14 +86,32 @@ const isRegister = ref(false)
 const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const registrationCode = ref('')
 const errorMsg = ref('')
 const loading = ref(false)
 
+// 后端认证配置
+const allowRegistration = ref(true)
+const needRegCode = ref(false)
+
+/** 页面加载时获取后端认证配置 */
+onMounted(async () => {
+  try {
+    const config = await authApi.config()
+    allowRegistration.value = config.allow_registration
+    needRegCode.value = config.need_registration_code
+  } catch {
+    // 获取配置失败时保持默认值（允许注册、不需要邀请码）
+  }
+})
+
 /** 切换登录/注册模式 */
 function toggleMode() {
+  if (!allowRegistration.value && !isRegister.value) return
   isRegister.value = !isRegister.value
   errorMsg.value = ''
   confirmPassword.value = ''
+  registrationCode.value = ''
 }
 
 /** 提交表单 */
@@ -108,11 +139,19 @@ async function handleSubmit() {
     errorMsg.value = '两次输入的密码不一致'
     return
   }
+  if (isRegister.value && needRegCode.value && !registrationCode.value.trim()) {
+    errorMsg.value = '请输入邀请码'
+    return
+  }
 
   loading.value = true
   try {
     if (isRegister.value) {
-      await authStore.register(username.value.trim(), password.value)
+      await authStore.register(
+        username.value.trim(),
+        password.value,
+        registrationCode.value.trim()
+      )
     } else {
       await authStore.login(username.value.trim(), password.value)
     }
@@ -237,5 +276,9 @@ async function handleSubmit() {
 
 .login-footer a:hover {
   text-decoration: underline;
+}
+
+.reg-closed-hint {
+  color: #e74c3c;
 }
 </style>

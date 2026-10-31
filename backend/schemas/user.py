@@ -7,6 +7,7 @@ class UserRegister(BaseModel):
 
     username: str
     password: str
+    registration_code: str = ""  # 邀请码（后端配置了 REGISTRATION_CODE 时必填）
 
 
 class UserLogin(BaseModel):

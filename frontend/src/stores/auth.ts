@@ -35,8 +35,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** 注册（注册成功后自动登录） */
-  async function register(username: string, password: string) {
-    const res = await authApi.register(username, password)
+  async function register(username: string, password: string, registrationCode?: string) {
+    const res = await authApi.register(username, password, registrationCode)
     token.value = res.access_token
     user.value = res.user
     localStorage.setItem('token', res.access_token)
