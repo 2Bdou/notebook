@@ -10,6 +10,10 @@
     <template v-else>
       <!-- 顶部标题栏 -->
       <div class="editor-header">
+        <!-- 手机端返回按钮 -->
+        <button v-if="showBack" class="btn-back" aria-label="返回笔记列表" @click="$emit('back')">
+          <Icon name="arrow-left" :size="20" />
+        </button>
         <input
           v-model="title"
           class="title-input"
@@ -154,6 +158,10 @@ import { useTagStore } from '@/stores/tag'
 // 导入 md-editor 全局配置（执行 highlight.js 集成）及工具函数
 import { excludedToolbars, countWords, formatTime } from '@/utils/md-config'
 import type { NoteTag } from '@/types'
+
+// ====== Props & Emits ======
+const props = withDefaults(defineProps<{ showBack?: boolean }>(), { showBack: false })
+defineEmits<{ (e: "back"): void }>()
 
 const noteStore = useNoteStore()
 const tagStore = useTagStore()
@@ -769,5 +777,36 @@ onUnmounted(() => {
 :global(.dark) .note-editor,
 :global([data-theme='dark']) .note-editor {
   background: #1e1e1e;
+}
+/* 手机端返回按钮 */
+.btn-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+.btn-back:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+/* ====== 手机端全屏 ====== */
+@media (max-width: 768px) {
+  .note-editor {
+    width: 100%;
+  }
+  .editor-header {
+    padding: 10px 12px;
+  }
+  .tag-bar {
+    padding: 6px 12px;
+  }
+  .editor-footer {
+    padding: 6px 12px;
+  }
 }
 </style>

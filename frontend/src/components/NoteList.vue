@@ -1,76 +1,142 @@
 <template>
   <div class="note-list">
-    <!-- 搜索框 -->
-    <div class="search-bar">
-      <Icon name="search" :size="16" class="search-icon" />
-      <input
-        v-model="keyword"
-        class="search-input"
-        placeholder="搜索笔记...（至少 2 个字符）"
-        aria-label="搜索笔记"
-        @input="onSearch"
-      />
-      <Icon v-if="noteStore.searching" name="loader" :size="16" class="search-loading spin" />
+    <!-- ====== 手机端：折叠式侧边栏内容 ====== -->
+    <div v-if="isMobile" class="mobile-sidebar-merge">
+      <div class="mobile-header">
+        <div class="mobile-logo-row">
+          <Icon name="notebook" :size="20" :stroke-width="1.8" class="logo-icon" />
+          <h1 class="mobile-logo">记事本</h1>
+        </div>
+        <button class="mobile-btn-new" @click="$emit('new')">
+          <Icon name="plus" :size="16" />
+          <span>新建笔记</span>
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <Icon name="search" :size="16" class="search-icon" />
+        <input v-model="keyword" class="search-input" placeholder="搜索笔记..." aria-label="搜索笔记" @input="onSearch" />
+        <Icon v-if="noteStore.searching" name="loader" :size="16" class="search-loading spin" />
+      </div>
+
+      <div class="mobile-collapsible-sections">
+        <div class="mobile-all-notes" :class="{ active: !hasCategoryFilter && !hasTagFilter }" @click="showAllNotes">
+          <Icon name="list" :size="16" />
+          <span>全部笔记</span>
+        </div>
+
+        <div class="mobile-section">
+          <button class="mobile-section-header" @click="toggleSection('category')">
+            <Icon name="chevron-down" :size="14" class="collapse-arrow" :class="{ rotated: !expandedSections.category }" />
+            <span class="section-title">分类</span>
+            <button class="btn-add-inline" title="新建分类" aria-label="新建分类" @click.stop="openCreateCategory">
+              <Icon name="plus" :size="14" />
+            </button>
+          </button>
+          <div v-show="expandedSections.category" class="mobile-section-body">
+            <CategoryTree
+              :categories="categoryStore.categories"
+              :selected-id="noteStore.filter.category_id"
+              @select="onSelectCategory"
+              @rename="onRenameCategory"
+              @delete="onDeleteCategory"
+              @add-sub="onAddSubCategory"
+            />
+          </div>
+        </div>
+
+        <div class="mobile-section">
+          <button class="mobile-section-header" @click="toggleSection('tag')">
+            <Icon name="chevron-down" :size="14" class="collapse-arrow" :class="{ rotated: !expandedSections.tag }" />
+            <span class="section-title">标签</span>
+            <button class="btn-add-inline" title="新建标签" aria-label="新建标签" @click.stop="openCreateTag">
+              <Icon name="plus" :size="14" />
+            </button>
+          </button>
+          <div v-show="expandedSections.tag" class="mobile-section-body">
+            <div v-if="tagCreating" class="tag-create-form">
+              <input v-model="newTagName" class="tag-input" placeholder="标签名称" maxlength="20"
+                @keydown.enter="confirmCreateTag" @keydown.esc="cancelCreateTag" @blur="confirmCreateTag" />
+            </div>
+            <ul class="tag-list">
+              <li v-for="tag in tagStore.tags" :key="tag.id" class="tag-item"
+                :class="{ active: noteStore.filter.tag_id === tag.id }" @click="onSelectTag(tag.id)">
+                <Icon name="tag" :size="14" class="tag-icon" />
+                <span class="tag-name">{{ tag.name }}</span>
+                <span class="tag-right">
+                  <span class="tag-count">{{ tag.note_count }}</span>
+                  <button class="tag-del" title="删除标签" aria-label="删除标签" @click.stop="onDeleteTag(tag)">
+                    <Icon name="x" :size="12" />
+                  </button>
+                </span>
+              </li>
+              <li v-if="!tagStore.tags.length && !tagCreating" class="empty-hint">暂无标签</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sort-bar">
+        <select class="sort-select" aria-label="排序方式" :value="noteStore.filter.sort" @change="onSortChange">
+          <option value="updated_at">更新时间</option>
+          <option value="created_at">创建时间</option>
+          <option value="title">标题</option>
+          <option value="word_count">字数</option>
+        </select>
+        <button class="sort-order-btn" :aria-label="noteStore.filter.order === 'desc' ? '降序' : '升序'" @click="toggleOrder">
+          <Icon :name="noteStore.filter.order === 'desc' ? 'arrow-down' : 'arrow-up'" :size="14" />
+        </button>
+      </div>
     </div>
 
-    <!-- 排序工具栏 -->
-    <div class="sort-bar">
-      <select class="sort-select" aria-label="排序方式" :value="noteStore.filter.sort" @change="onSortChange">
-        <option value="updated_at">更新时间</option>
-        <option value="created_at">创建时间</option>
-        <option value="title">标题</option>
-        <option value="word_count">字数</option>
-      </select>
-      <button
-        class="sort-order-btn"
-        :aria-label="noteStore.filter.order === 'desc' ? '降序排列' : '升序排列'"
-        @click="toggleOrder"
-      >
-        <Icon :name="noteStore.filter.order === 'desc' ? 'arrow-down' : 'arrow-up'" :size="14" />
-      </button>
-    </div>
+    <!-- ====== 桌面端：搜索框 + 排序栏 ====== -->
+    <template v-if="!isMobile">
+      <div class="search-bar">
+        <Icon name="search" :size="16" class="search-icon" />
+        <input v-model="keyword" class="search-input" placeholder="搜索笔记...（至少 2 个字符）"
+          aria-label="搜索笔记" @input="onSearch" />
+        <Icon v-if="noteStore.searching" name="loader" :size="16" class="search-loading spin" />
+      </div>
+      <div class="sort-bar">
+        <select class="sort-select" aria-label="排序方式" :value="noteStore.filter.sort" @change="onSortChange">
+          <option value="updated_at">更新时间</option>
+          <option value="created_at">创建时间</option>
+          <option value="title">标题</option>
+          <option value="word_count">字数</option>
+        </select>
+        <button class="sort-order-btn" :aria-label="noteStore.filter.order === 'desc' ? '降序' : '升序'" @click="toggleOrder">
+          <Icon :name="noteStore.filter.order === 'desc' ? 'arrow-down' : 'arrow-up'" :size="14" />
+        </button>
+      </div>
+    </template>
 
-    <!-- 当前过滤条件展示 -->
+    <!-- ====== 过滤条件（共用） ====== -->
     <div v-if="noteStore.hasFilter" class="filter-bar">
       <span v-if="noteStore.filter.category_id" class="filter-chip">
         分类: {{ categoryStore.getCategoryName(noteStore.filter.category_id) }}
-        <button class="chip-close" aria-label="清除分类过滤" @click="noteStore.clearCategoryFilter()">
-          <Icon name="x" :size="10" />
-        </button>
+        <button class="chip-close" aria-label="清除分类过滤" @click="noteStore.clearCategoryFilter()"><Icon name="x" :size="10" /></button>
       </span>
       <span v-if="noteStore.filter.tag_id" class="filter-chip">
         标签: {{ tagStore.getTagName(noteStore.filter.tag_id) }}
-        <button class="chip-close" aria-label="清除标签过滤" @click="noteStore.clearTagFilter()">
-          <Icon name="x" :size="10" />
-        </button>
+        <button class="chip-close" aria-label="清除标签过滤" @click="noteStore.clearTagFilter()"><Icon name="x" :size="10" /></button>
       </span>
       <span v-if="noteStore.filter.q" class="filter-chip">
         搜索: {{ noteStore.filter.q }}
-        <button class="chip-close" aria-label="清除搜索" @click="clearSearch">
-          <Icon name="x" :size="10" />
-        </button>
+        <button class="chip-close" aria-label="清除搜索" @click="clearSearch"><Icon name="x" :size="10" /></button>
       </span>
       <button class="btn-clear-all" @click="clearAllFilters">清除全部</button>
     </div>
 
-    <!-- 笔记卡片列表 -->
+    <!-- ====== 笔记卡片列表（共用） ====== -->
     <div class="list-body">
-      <div v-if="noteStore.loading && !noteStore.notes.length" class="list-loading">
-        加载中...
-      </div>
-
+      <div v-if="noteStore.loading && !noteStore.notes.length" class="list-loading">加载中...</div>
       <template v-else>
         <template v-for="note in noteStore.notes" :key="note.id">
           <div v-if="showPinSeparator(note)" class="pin-separator">
             <span class="separator-text">普通笔记</span>
           </div>
-
-          <div
-            class="note-card"
-            :class="{ active: noteStore.current?.id === note.id }"
-            @click="selectNote(note)"
-            @contextmenu.prevent="onContextMenu($event, note)"
-          >
+          <div class="note-card" :class="{ active: noteStore.current?.id === note.id }"
+            @click="selectNote(note)" @contextmenu.prevent="onContextMenu($event, note)">
             <div class="note-title">
               <Icon v-if="note.is_pinned" name="pin" :size="14" class="pin-icon" />
               <span class="title-text" v-html="highlightTitle(note.title)"></span>
@@ -84,23 +150,31 @@
             </div>
           </div>
         </template>
-
         <div v-if="!noteStore.notes.length && !noteStore.loading" class="empty-state">
           <template v-if="noteStore.filter.q">未找到相关笔记</template>
-          <template v-else>
-            {{ noteStore.hasFilter ? '没有符合条件的笔记' : '暂无笔记，点击左侧「新建笔记」开始记录' }}
-          </template>
+          <template v-else>{{ noteStore.hasFilter ? '没有符合条件的笔记' : '暂无笔记，点击「新建笔记」开始记录' }}</template>
         </div>
       </template>
     </div>
 
+    <!-- ====== 手机端底部 ====== -->
+    <div v-if="isMobile" class="mobile-footer">
+      <router-link to="/trash" class="trash-link">
+        <Icon name="trash" :size="16" />
+        <span>回收站</span>
+      </router-link>
+      <div class="user-info" v-if="authStore.user">
+        <span class="user-avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</span>
+        <span class="user-name">{{ authStore.user.username }}</span>
+        <button class="btn-logout" title="退出登录" aria-label="退出登录" @click="handleLogout">
+          <Icon name="logout" :size="16" />
+        </button>
+      </div>
+    </div>
+
     <!-- 右键菜单 -->
-    <div
-      v-if="contextMenu.visible"
-      class="context-menu"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      @click.stop
-    >
+    <div v-if="contextMenu.visible" class="context-menu"
+      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
       <button class="ctx-item" @click="quickTogglePin">
         <Icon name="pin" :size="14" />
         <span>{{ contextMenu.note?.is_pinned ? '取消置顶' : '置顶' }}</span>
@@ -110,22 +184,36 @@
         <span>删除</span>
       </button>
     </div>
+
+    <!-- 分类弹窗 -->
+    <CategoryModal v-if="modalVisible" :category="editingCategory" :categories="categoryStore.categories"
+      @confirm="onModalConfirm" @cancel="modalVisible = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Icon from '@/components/Icon.vue'
+import CategoryTree from '@/components/CategoryTree.vue'
+import CategoryModal from '@/components/CategoryModal.vue'
 import { useNoteStore } from '@/stores/note'
 import { useCategoryStore } from '@/stores/category'
 import { useTagStore } from '@/stores/tag'
-import type { Note, SortField, SortOrder } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import type { Note, SortField, SortOrder, Category, Tag } from '@/types'
+
+const props = withDefaults(defineProps<{ isMobile?: boolean }>(), { isMobile: false })
+const emit = defineEmits<{ (e: 'select-note'): void; (e: 'new'): void }>()
 
 const noteStore = useNoteStore()
 const categoryStore = useCategoryStore()
 const tagStore = useTagStore()
+const authStore = useAuthStore()
+const router = useRouter()
 const keyword = ref('')
 
+// ====== 搜索 ======
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 function onSearch() {
   if (searchTimer) clearTimeout(searchTimer)
@@ -133,26 +221,83 @@ function onSearch() {
 }
 function clearSearch() { keyword.value = ''; noteStore.setSearch('') }
 function clearAllFilters() { keyword.value = ''; noteStore.clearFilters() }
-function onSortChange(e: Event) {
-  noteStore.setSort((e.target as HTMLSelectElement).value as SortField); saveSortState()
-}
-function toggleOrder() {
-  noteStore.setOrder(noteStore.filter.order === 'desc' ? 'asc' : 'desc'); saveSortState()
-}
-function saveSortState() {
-  localStorage.setItem('note_sort', noteStore.filter.sort)
-  localStorage.setItem('note_order', noteStore.filter.order)
-}
+
+// ====== 排序 ======
+function onSortChange(e: Event) { noteStore.setSort((e.target as HTMLSelectElement).value as SortField); saveSortState() }
+function toggleOrder() { noteStore.setOrder(noteStore.filter.order === 'desc' ? 'asc' : 'desc'); saveSortState() }
+function saveSortState() { localStorage.setItem('note_sort', noteStore.filter.sort); localStorage.setItem('note_order', noteStore.filter.order) }
 function restoreSortState() {
   const s = localStorage.getItem('note_sort') as SortField | null
   const o = localStorage.getItem('note_order') as SortOrder | null
   if (s) noteStore.filter.sort = s
   if (o) noteStore.filter.order = o
 }
-function selectNote(note: Note) { noteStore.fetchNote(note.id) }
-function escapeHtml(t: string): string {
-  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+// ====== 选择笔记 ======
+function selectNote(note: Note) {
+  noteStore.fetchNote(note.id)
+  if (props.isMobile) emit('select-note')
 }
+
+// ====== 退出登录 ======
+function handleLogout() { authStore.logout(); router.push({ name: 'login' }) }
+
+// ====== 过滤状态 ======
+const hasCategoryFilter = ref(false)
+const hasTagFilter = ref(false)
+watch(() => noteStore.filter, (f) => {
+  hasCategoryFilter.value = f.category_id !== undefined
+  hasTagFilter.value = f.tag_id !== undefined
+}, { deep: true, immediate: true })
+function showAllNotes() { noteStore.clearFilters() }
+
+// ====== 折叠区 ======
+const expandedSections = reactive({ category: false, tag: false })
+function toggleSection(key: 'category' | 'tag') { expandedSections[key] = !expandedSections[key] }
+
+// ====== 分类操作 ======
+const modalVisible = ref(false)
+const editingCategory = ref<Category | null>(null)
+const addSubParentId = ref<number | null>(null)
+function openCreateCategory() { editingCategory.value = null; addSubParentId.value = null; modalVisible.value = true }
+function onSelectCategory(id: number) { noteStore.setCategoryFilter(noteStore.filter.category_id === id ? undefined : id) }
+async function onRenameCategory(id: number, name: string) {
+  try { await categoryStore.updateCategory(id, { name }) } catch (e: any) { alert(e?.message || '重命名失败') }
+}
+async function onDeleteCategory(cat: Category) {
+  if (!confirm(`确定删除分类「${cat.name}」？`)) return
+  try { await categoryStore.deleteCategory(cat.id); if (noteStore.filter.category_id === cat.id) noteStore.clearCategoryFilter() }
+  catch (e: any) { alert(e?.message || '删除失败') }
+}
+function onAddSubCategory(parentId: number) { editingCategory.value = null; addSubParentId.value = parentId; modalVisible.value = true }
+async function onModalConfirm(data: { name: string; parent_id: number | null }) {
+  try {
+    if (editingCategory.value) await categoryStore.updateCategory(editingCategory.value.id, { name: data.name, parent_id: data.parent_id })
+    else await categoryStore.createCategory({ name: data.name, parent_id: addSubParentId.value ?? data.parent_id })
+    modalVisible.value = false; editingCategory.value = null; addSubParentId.value = null
+  } catch (e: any) { alert(e?.message || '操作失败') }
+}
+
+// ====== 标签操作 ======
+const tagCreating = ref(false)
+const newTagName = ref('')
+function openCreateTag() { tagCreating.value = true; newTagName.value = '' }
+async function confirmCreateTag() {
+  const name = newTagName.value.trim()
+  if (!name) { tagCreating.value = false; return }
+  try { await tagStore.createTag(name) } catch (e: any) { alert(e?.message || '创建失败') }
+  tagCreating.value = false; newTagName.value = ''
+}
+function cancelCreateTag() { tagCreating.value = false; newTagName.value = '' }
+function onSelectTag(id: number) { noteStore.setTagFilter(noteStore.filter.tag_id === id ? undefined : id) }
+async function onDeleteTag(tag: Tag) {
+  if (!confirm(`确定删除标签「${tag.name}」？`)) return
+  try { await tagStore.deleteTag(tag.id); if (noteStore.filter.tag_id === tag.id) noteStore.clearTagFilter() }
+  catch (e: any) { alert(e?.message || '删除失败') }
+}
+
+// ====== 搜索高亮 ======
+function escapeHtml(t: string): string { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') }
 function highlightTitle(title: string): string {
   const q = noteStore.filter.q
   if (!q || q.length < 2) return escapeHtml(title || '无标题')
@@ -176,34 +321,30 @@ function showPinSeparator(note: Note): boolean {
   if (idx <= 0) return false
   return notes[idx - 1].is_pinned && !note.is_pinned
 }
+
+// ====== 右键菜单 ======
 const contextMenu = ref({ visible: false, x: 0, y: 0, note: null as Note | null })
-function onContextMenu(e: MouseEvent, note: Note) {
-  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, note }
-}
+function onContextMenu(e: MouseEvent, note: Note) { contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, note } }
 function closeContextMenu() { contextMenu.value.visible = false }
 async function quickTogglePin() {
   const note = contextMenu.value.note; if (!note) return; closeContextMenu()
   try {
     const pinned = !note.is_pinned
     await noteStore.updateNote(note.id, { is_pinned: pinned })
-    const target = noteStore.notes.find((n) => n.id === note.id)
-    if (target) target.is_pinned = pinned
+    const t = noteStore.notes.find((n) => n.id === note.id); if (t) t.is_pinned = pinned
     if (noteStore.current?.id === note.id) noteStore.current.is_pinned = pinned
     await noteStore.fetchNotes()
-  } catch (err: any) { alert(err?.message || '操作失败') }
+  } catch (e: any) { alert(e?.message || '操作失败') }
 }
 async function quickDelete() {
   const note = contextMenu.value.note; if (!note) return; closeContextMenu()
   if (!confirm(`确定删除「${note.title || '无标题'}」？`)) return
-  try {
-    await noteStore.deleteNote(note.id)
-    if (noteStore.current?.id === note.id) noteStore.current = null
-    await noteStore.fetchNotes()
-  } catch (err: any) { alert(err?.message || '删除失败') }
+  try { await noteStore.deleteNote(note.id); if (noteStore.current?.id === note.id) noteStore.current = null; await noteStore.fetchNotes() }
+  catch (e: any) { alert(e?.message || '删除失败') }
 }
-function getSummary(content: string): string {
-  return content.replace(/[#*`>\-\[\]()!]/g, '').trim().slice(0, 80) || '无内容'
-}
+
+// ====== 工具函数 ======
+function getSummary(content: string): string { return content.replace(/[#*`>\-\[\]()!]/g, '').trim().slice(0, 80) || '无内容' }
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr.replace(' ', 'T'))
   const diff = Date.now() - d.getTime()
@@ -212,6 +353,8 @@ function formatDate(dateStr: string): string {
   if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
   return `${d.getMonth() + 1}月${d.getDate()}日`
 }
+
+// ====== 生命周期 ======
 watch(() => noteStore.filter.q, (q) => { if (!q && keyword.value) keyword.value = '' })
 onMounted(() => { restoreSortState(); document.addEventListener('click', closeContextMenu) })
 onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
@@ -219,23 +362,83 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 
 <style scoped>
 .note-list { width: 320px; flex-shrink: 0; background: var(--color-bg-card); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; }
-.search-bar { position: relative; padding: var(--space-3); border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: var(--space-2); }
+
+/* ====== 手机端合并区 ====== */
+.mobile-sidebar-merge { flex-shrink: 0; }
+.mobile-header { padding: var(--space-3) var(--space-4); background: var(--color-sidebar-bg); }
+.mobile-logo-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
+.logo-icon { color: var(--color-primary); }
+.mobile-logo { font-size: 18px; font-weight: 600; color: #f1f5f9; }
+.mobile-btn-new { width: 100%; padding: 10px; background: var(--color-primary); color: #fff; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 40px; }
+.mobile-btn-new:active { transform: scale(0.98); }
+
+.mobile-collapsible-sections { background: var(--color-bg); padding: var(--space-2) var(--space-3); }
+.mobile-all-notes { display: flex; align-items: center; gap: var(--space-2); padding: 8px 12px; border-radius: var(--radius-md); cursor: pointer; font-size: 14px; font-weight: 500; min-height: 36px; color: var(--color-text-primary); }
+.mobile-all-notes:hover { background: var(--color-primary-bg); }
+.mobile-all-notes.active { background: var(--color-primary); color: #fff; }
+.mobile-section { margin-top: 4px; }
+.mobile-section-header { width: 100%; display: flex; align-items: center; gap: var(--space-2); padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; color: var(--color-text-primary); min-height: 36px; }
+.mobile-section-header:hover { background: var(--color-primary-bg); }
+.collapse-arrow { transition: transform var(--transition-fast); }
+.collapse-arrow.rotated { transform: rotate(-90deg); }
+.section-title { flex: 1; font-weight: 500; }
+.btn-add-inline { color: var(--color-text-tertiary); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--radius-sm); }
+.btn-add-inline:hover { color: var(--color-primary); background: var(--color-primary-light); }
+.mobile-section-body { padding: 4px 0 4px 12px; }
+
+/* 标签列表 */
+.tag-list { list-style: none; }
+.tag-item { display: flex; align-items: center; gap: var(--space-2); padding: 6px 8px; border-radius: var(--radius-md); cursor: pointer; min-height: 32px; }
+.tag-item:hover { background: var(--color-primary-bg); }
+.tag-item.active { background: var(--color-primary); color: #fff; }
+.tag-icon { flex-shrink: 0; opacity: 0.7; }
+.tag-item.active .tag-icon { opacity: 1; }
+.tag-name { font-size: 14px; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tag-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.tag-count { font-size: 12px; color: var(--color-text-tertiary); background: var(--color-border-light); padding: 1px 6px; border-radius: var(--radius-full); min-width: 20px; text-align: center; }
+.tag-item.active .tag-count { background: rgba(255,255,255,0.25); color: #fff; }
+.tag-del { display: none; color: var(--color-text-secondary); padding: 4px; border-radius: var(--radius-sm); }
+.tag-item:hover .tag-del { display: inline-flex; }
+.tag-del:hover { color: var(--color-danger); background: var(--color-danger-light); }
+.tag-create-form { padding: 0 var(--space-2) 6px; }
+.tag-input { width: 100%; padding: 6px 8px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); font-size: 13px; background: var(--color-bg-card); color: var(--color-text-primary); box-sizing: border-box; }
+.tag-input:focus { outline: none; box-shadow: 0 0 0 3px var(--color-primary-bg); }
+.empty-hint { padding: 6px 8px; font-size: 13px; color: var(--color-text-tertiary); }
+
+/* 手机端底部 */
+.mobile-footer { margin-top: auto; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-border); background: var(--color-bg-card); flex-shrink: 0; }
+.trash-link { display: flex; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--color-text-secondary); padding: 6px 0; min-height: 32px; }
+.trash-link:hover { color: var(--color-primary); }
+.user-info { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border-light); }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary); color: #fff; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.user-name { font-size: 14px; color: var(--color-text-primary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.btn-logout { color: var(--color-text-tertiary); padding: 6px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; }
+.btn-logout:hover { color: var(--color-danger); background: var(--color-danger-light); }
+
+/* ====== 搜索框 ====== */
+.search-bar { padding: var(--space-3); border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: var(--space-2); }
 .search-icon { color: var(--color-text-tertiary); flex-shrink: 0; }
 .search-input { flex: 1; padding: 8px 0; border: none; font-size: 14px; background: transparent; color: var(--color-text-primary); }
 .search-input::placeholder { color: var(--color-text-tertiary); }
 .search-loading { color: var(--color-text-tertiary); flex-shrink: 0; }
+
+/* ====== 排序栏 ====== */
 .sort-bar { display: flex; align-items: center; gap: 6px; padding: 6px var(--space-3); border-bottom: 1px solid var(--color-border-light); background: var(--color-bg); }
 .sort-select { flex: 1; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 12px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 32px; }
 .sort-select:focus { border-color: var(--color-primary); }
-.sort-order-btn { padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); min-height: 32px; min-width: 32px; transition: all var(--transition-fast); }
+.sort-order-btn { padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); min-height: 32px; min-width: 32px; }
 .sort-order-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ====== 过滤标签 ====== */
 .filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px var(--space-3); border-bottom: 1px solid var(--color-border-light); background: var(--color-primary-bg); }
 .filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--color-primary-light); color: var(--color-primary-hover); border-radius: var(--radius-full); font-size: 12px; font-weight: 500; }
-.chip-close { cursor: pointer; color: var(--color-primary-hover); padding: 2px; display: flex; align-items: center; line-height: 1; opacity: 0.6; transition: opacity var(--transition-fast); }
+.chip-close { cursor: pointer; color: var(--color-primary-hover); padding: 2px; display: flex; align-items: center; opacity: 0.6; }
 .chip-close:hover { opacity: 1; }
 .btn-clear-all { cursor: pointer; font-size: 12px; color: var(--color-danger); padding: 4px; margin-left: auto; }
 .btn-clear-all:hover { text-decoration: underline; }
-.list-body { flex: 1; overflow-y: auto; position: relative; }
+
+/* ====== 笔记列表 ====== */
+.list-body { flex: 1; overflow-y: auto; }
 .list-loading { text-align: center; color: var(--color-text-tertiary); padding: 40px var(--space-4); font-size: 14px; }
 .pin-separator { display: flex; align-items: center; padding: 6px var(--space-4); background: var(--color-bg); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
 .separator-text { font-size: 11px; color: var(--color-text-tertiary); letter-spacing: 1px; font-weight: 500; }
@@ -251,12 +454,22 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 .note-tags { display: flex; gap: 4px; }
 .mini-tag { font-size: 11px; color: var(--color-primary-hover); background: var(--color-primary-light); padding: 2px 6px; border-radius: var(--radius-full); }
 .empty-state { text-align: center; color: var(--color-text-tertiary); padding: 40px var(--space-4); font-size: 14px; }
+
+/* ====== 右键菜单 ====== */
 .context-menu { position: fixed; z-index: 1000; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); overflow: hidden; min-width: 140px; }
-.ctx-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: 10px var(--space-4); cursor: pointer; font-size: 13px; text-align: left; color: var(--color-text-primary); transition: background var(--transition-fast); }
+.ctx-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: 10px var(--space-4); cursor: pointer; font-size: 13px; text-align: left; color: var(--color-text-primary); }
 .ctx-item:hover { background: var(--color-primary-bg); }
 .ctx-danger:hover { background: var(--color-danger-light); color: var(--color-danger); }
+
+/* ====== 搜索高亮 ====== */
 :deep(.search-highlight) { background: #fef3c7; color: #92400e; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+
+/* ====== 加载动画 ====== */
 .spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@media (max-width: 768px) { .note-list { width: 100%; } }
+
+/* ====== 手机端：全屏宽度 ====== */
+@media (max-width: 768px) {
+  .note-list { width: 100%; border-right: none; }
+}
 </style>
