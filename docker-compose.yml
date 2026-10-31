@@ -9,6 +9,8 @@ services:
       - ./data:/app/data
     environment:
       - DB_PATH=/app/data/notebook.db
+      - SECRET_KEY=${SECRET_KEY:-notebook-secret-key-change-in-production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
     expose:
       - "8000"
 

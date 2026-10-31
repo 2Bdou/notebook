@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import notes, categories, tags, search
+from routers import notes, categories, tags, search, auth
 
 
 @asynccontextmanager
@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 # 创建 FastAPI 应用实例
-app = FastAPI(title="记事本 API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="记事本 API", version="1.1.0", lifespan=lifespan)
 
 # 启用 CORS（开发阶段允许所有来源访问）
 app.add_middleware(
@@ -30,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载认证路由
+app.include_router(auth.router, prefix="/api")
 
 # 挂载业务路由（统一加 /api 前缀）
 app.include_router(notes.router, prefix="/api")

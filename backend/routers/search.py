@@ -1,10 +1,14 @@
-"""全文搜索路由（基于 LIKE 模糊匹配 title 与 content，支持相关度排序）"""
+"""全文搜索路由（基于 LIKE 模糊匹配 title 与 content，支持相关度排序）
+
+需要登录认证，仅搜索当前用户的笔记。
+"""
 from typing import Optional
 
 import aiosqlite
 from fastapi import APIRouter, Depends
 
 from database import get_db
+from deps import get_current_user
 from models import note as note_model
 from schemas import ok
 
@@ -19,12 +23,14 @@ async def search(
     page: int = 1,
     page_size: int = 20,
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """全文搜索笔记（匹配标题与正文，支持分类/标签二次过滤、相关度排序）
 
     - 关键词最少 2 个字符才触发搜索
     - 标题匹配优先于正文匹配（相关度：标题 2 分，正文 1 分）
     - 返回匹配类型和摘要片段供前端高亮展示
+    - 仅搜索当前用户的笔记
     """
     # 关键词为空或不足 2 个字符时返回空结果
     if not q or len(q.strip()) < 2:
@@ -32,6 +38,7 @@ async def search(
 
     result = await note_model.search_notes(
         db,
+        user_id=current_user["id"],
         q=q.strip(),
         category_id=category_id,
         tag_id=tag_id,

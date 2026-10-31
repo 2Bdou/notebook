@@ -7,6 +7,18 @@ const instance = axios.create({
   timeout: 10000
 })
 
+// 请求拦截器：自动附加 JWT token
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
 // 响应拦截器：统一提取 data 字段并处理错误
 instance.interceptors.response.use(
   (response) => {
@@ -19,6 +31,14 @@ instance.interceptors.response.use(
     return res.data
   },
   (error) => {
+    // 401 表示 token 失效或未登录，清除登录态并跳转登录页
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
     console.error('[Request Error]', error.message)
     return Promise.reject(error)
   }

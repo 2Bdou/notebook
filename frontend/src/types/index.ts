@@ -5,6 +5,20 @@ export interface ApiResponse<T = any> {
   data: T
 }
 
+/** 用户信息 */
+export interface User {
+  id: number
+  username: string
+  created_at: string
+}
+
+/** 登录/注册返回结果 */
+export interface AuthResult {
+  access_token: string
+  token_type: string
+  user: User
+}
+
 /** 笔记关联的标签简要信息 */
 export interface NoteTag {
   id: number

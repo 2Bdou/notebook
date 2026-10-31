@@ -14,6 +14,11 @@ class Settings:
     # CORS 允许的来源（开发阶段允许所有来源）
     CORS_ORIGINS: list[str] = ["*"]
 
+    # JWT 认证配置
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "notebook-secret-key-change-in-production")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))
+
 
 # 全局配置单例
 settings = Settings()

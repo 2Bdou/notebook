@@ -72,6 +72,11 @@
     <!-- 底部导航 -->
     <div class="sidebar-footer">
       <router-link to="/trash" class="trash-link">🗑 回收站</router-link>
+      <div class="user-info" v-if="authStore.user">
+        <span class="user-avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</span>
+        <span class="user-name">{{ authStore.user.username }}</span>
+        <button class="btn-logout" title="退出登录" @click="handleLogout">退出</button>
+      </div>
     </div>
 
     <!-- 分类创建/编辑弹窗 -->
@@ -87,11 +92,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import CategoryTree from '@/components/CategoryTree.vue'
 import CategoryModal from '@/components/CategoryModal.vue'
 import { useNoteStore } from '@/stores/note'
 import { useCategoryStore } from '@/stores/category'
 import { useTagStore } from '@/stores/tag'
+import { useAuthStore } from '@/stores/auth'
 import type { Category, Tag } from '@/types'
 
 defineEmits<{ (e: 'new'): void }>()
@@ -99,6 +106,15 @@ defineEmits<{ (e: 'new'): void }>()
 const noteStore = useNoteStore()
 const categoryStore = useCategoryStore()
 const tagStore = useTagStore()
+const authStore = useAuthStore()
+
+const router = useRouter()
+
+/** 退出登录 */
+function handleLogout() {
+  authStore.logout()
+  router.push({ name: 'login' })
+}
 
 // ==================== 过滤状态计算 ====================
 const hasCategoryFilter = computed(() => noteStore.filter.category_id !== undefined)
@@ -409,5 +425,46 @@ async function onDeleteTag(tag: Tag) {
 }
 .trash-link:hover {
   color: #fff;
+}
+/* 用户信息区 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #34495e;
+}
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #42b983;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.user-name {
+  font-size: 14px;
+  color: #ecf0f1;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.btn-logout {
+  font-size: 12px;
+  color: #95a5a6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.btn-logout:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
 }
 </style>

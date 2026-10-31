@@ -8,18 +8,27 @@ import aiosqlite
 from config import settings
 
 # 建表 SQL
-# 注意顺序：categories 需先于 notes 创建（notes.category_id 外键引用 categories）
+# 注意顺序：users 需先于 categories/notes/tags 创建（它们的外键引用 users）
 INIT_SQL = """
--- 分类表：支持自引用 parent_id 形成树形结构
+-- 用户表：存储登录账号和密码哈希
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 分类表：支持自引用 parent_id 形成树形结构，绑定到用户
 CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     sort_order INTEGER NOT NULL DEFAULT 0,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 笔记表：deleted_at 非空表示已软删除
+-- 笔记表：deleted_at 非空表示已软删除，绑定到用户
 CREATE TABLE IF NOT EXISTS notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL DEFAULT '',
@@ -28,16 +37,19 @@ CREATE TABLE IF NOT EXISTS notes (
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     is_pinned INTEGER NOT NULL DEFAULT 0,
     word_count INTEGER NOT NULL DEFAULT 0,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     deleted_at TEXT
 );
 
--- 标签表：name 全局唯一
+-- 标签表：同一用户下 name 唯一
 CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    name TEXT NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, name)
 );
 
 -- 笔记-标签关联表：多对多关系
@@ -51,7 +63,18 @@ CREATE TABLE IF NOT EXISTS note_tags (
 CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(category_id);
 CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at);
 CREATE INDEX IF NOT EXISTS idx_notes_deleted ON notes(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user_id);
 """
+
+# 安全添加 user_id 列的 SQL（用于升级已有数据库）
+# 如果列已存在，SQLite 会报错，用 try-except 忽略
+MIGRATE_SQL = [
+    "ALTER TABLE categories ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE",
+    "ALTER TABLE notes ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE",
+    "ALTER TABLE tags ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE",
+]
 
 
 async def init_db() -> None:
@@ -63,6 +86,12 @@ async def init_db() -> None:
         # 开启外键约束支持
         await db.execute("PRAGMA foreign_keys = ON")
         await db.executescript(INIT_SQL)
+        # 尝试为已有表添加 user_id 列（全新数据库不需要，但升级时需要）
+        for sql in MIGRATE_SQL:
+            try:
+                await db.execute(sql)
+            except aiosqlite.OperationalError:
+                pass  # 列已存在，忽略
         await db.commit()
 
 

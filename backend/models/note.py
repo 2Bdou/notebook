@@ -1,4 +1,7 @@
-"""Note 数据访问层：封装笔记的 CRUD SQL 操作"""
+"""Note 数据访问层：封装笔记的 CRUD SQL 操作
+
+所有函数都接受 user_id 参数，确保用户之间数据隔离。
+"""
 from typing import Optional
 
 import aiosqlite
@@ -39,6 +42,7 @@ def _build_snippet(content: str, keyword: str, radius: int = 50) -> str:
 
 async def get_notes(
     db: aiosqlite.Connection,
+    user_id: int,
     category_id: Optional[int] = None,
     tag_id: Optional[int] = None,
     q: Optional[str] = None,
@@ -47,14 +51,14 @@ async def get_notes(
     page: int = 1,
     page_size: int = 20,
 ) -> dict:
-    """查询笔记列表（默认排除已软删除的笔记）
+    """查询笔记列表（默认排除已软删除的笔记，仅返回指定用户的笔记）
 
     支持按分类、标签、关键词过滤，以及多种排序与分页。
     sort: updated_at / created_at / title / word_count
     order: desc / asc
     """
-    where = ["deleted_at IS NULL"]
-    params: list = []
+    where = ["deleted_at IS NULL", "user_id = ?"]
+    params: list = [user_id]
 
     if category_id is not None:
         where.append("category_id = ?")
@@ -105,6 +109,7 @@ async def get_notes(
 
 async def search_notes(
     db: aiosqlite.Connection,
+    user_id: int,
     q: str,
     category_id: Optional[int] = None,
     tag_id: Optional[int] = None,
@@ -113,10 +118,10 @@ async def search_notes(
 ) -> dict:
     """全文搜索笔记（匹配标题与正文），按相关度排序并返回匹配信息
 
-    相关度：标题匹配(2) + 正文匹配(1)，得分越高越靠前。
+    仅搜索指定用户的笔记。相关度：标题匹配(2) + 正文匹配(1)。
     """
-    where = ["deleted_at IS NULL"]
-    params: list = []
+    where = ["deleted_at IS NULL", "user_id = ?"]
+    params: list = [user_id]
 
     # 关键词匹配条件
     like_q = f"%{q}%"
@@ -175,14 +180,14 @@ async def search_notes(
 
 
 async def get_note_by_id(
-    db: aiosqlite.Connection, note_id: int, include_deleted: bool = False
+    db: aiosqlite.Connection, note_id: int, user_id: int, include_deleted: bool = False
 ) -> Optional[dict]:
-    """根据 ID 获取笔记详情"""
+    """根据 ID 获取笔记详情（仅返回指定用户的笔记）"""
     if include_deleted:
-        sql = "SELECT * FROM notes WHERE id = ?"
+        sql = "SELECT * FROM notes WHERE id = ? AND user_id = ?"
     else:
-        sql = "SELECT * FROM notes WHERE id = ? AND deleted_at IS NULL"
-    async with db.execute(sql, [note_id]) as cur:
+        sql = "SELECT * FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    async with db.execute(sql, [note_id, user_id]) as cur:
         row = await cur.fetchone()
     if not row:
         return None
@@ -191,12 +196,12 @@ async def get_note_by_id(
     return item
 
 
-async def create_note(db: aiosqlite.Connection, data: dict) -> dict:
+async def create_note(db: aiosqlite.Connection, user_id: int, data: dict) -> dict:
     """新建笔记，并关联标签"""
     word_count = len(data.get("content", "") or "")
     sql = """
-    INSERT INTO notes (title, content, content_html, category_id, is_pinned, word_count)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO notes (title, content, content_html, category_id, is_pinned, word_count, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     """
     params = [
         data.get("title", ""),
@@ -205,6 +210,7 @@ async def create_note(db: aiosqlite.Connection, data: dict) -> dict:
         data.get("category_id"),
         1 if data.get("is_pinned") else 0,
         word_count,
+        user_id,
     ]
     async with db.execute(sql, params) as cur:
         note_id = cur.lastrowid
@@ -216,10 +222,12 @@ async def create_note(db: aiosqlite.Connection, data: dict) -> dict:
             [note_id, tid],
         )
     await db.commit()
-    return await get_note_by_id(db, note_id, include_deleted=True)
+    return await get_note_by_id(db, note_id, user_id, include_deleted=True)
 
 
-async def update_note(db: aiosqlite.Connection, note_id: int, data: dict) -> Optional[dict]:
+async def update_note(
+    db: aiosqlite.Connection, note_id: int, user_id: int, data: dict
+) -> Optional[dict]:
     """更新笔记（仅更新请求中提供的字段），并可替换标签关联"""
     fields: list[str] = []
     params: list = []
@@ -239,12 +247,12 @@ async def update_note(db: aiosqlite.Connection, note_id: int, data: dict) -> Opt
     has_tag_update = data.get("tag_ids") is not None
 
     if not fields and not has_tag_update:
-        return await get_note_by_id(db, note_id)
+        return await get_note_by_id(db, note_id, user_id)
 
     if fields:
         fields.append("updated_at = datetime('now')")
-        sql = f"UPDATE notes SET {', '.join(fields)} WHERE id = ? AND deleted_at IS NULL"
-        await db.execute(sql, params + [note_id])
+        sql = f"UPDATE notes SET {', '.join(fields)} WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+        await db.execute(sql, params + [note_id, user_id])
 
     # 替换标签关联：先清空再重建
     if has_tag_update:
@@ -256,44 +264,49 @@ async def update_note(db: aiosqlite.Connection, note_id: int, data: dict) -> Opt
             )
 
     await db.commit()
-    return await get_note_by_id(db, note_id)
+    return await get_note_by_id(db, note_id, user_id)
 
 
-async def soft_delete_note(db: aiosqlite.Connection, note_id: int) -> bool:
+async def soft_delete_note(
+    db: aiosqlite.Connection, note_id: int, user_id: int
+) -> bool:
     """软删除笔记（仅设置 deleted_at，不真正删除数据）"""
-    sql = "UPDATE notes SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
-    async with db.execute(sql, [note_id]) as cur:
+    sql = "UPDATE notes SET deleted_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    async with db.execute(sql, [note_id, user_id]) as cur:
         affected = cur.rowcount
     await db.commit()
     return affected > 0
 
 
-async def restore_note(db: aiosqlite.Connection, note_id: int) -> bool:
+async def restore_note(
+    db: aiosqlite.Connection, note_id: int, user_id: int
+) -> bool:
     """恢复已软删除的笔记（清空 deleted_at）"""
-    sql = "UPDATE notes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL"
-    async with db.execute(sql, [note_id]) as cur:
+    sql = "UPDATE notes SET deleted_at = NULL WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL"
+    async with db.execute(sql, [note_id, user_id]) as cur:
         affected = cur.rowcount
     await db.commit()
     return affected > 0
 
 
 async def get_trash_notes(
-    db: aiosqlite.Connection, page: int = 1, page_size: int = 20
+    db: aiosqlite.Connection, user_id: int, page: int = 1, page_size: int = 20
 ) -> dict:
-    """获取回收站中已软删除的笔记列表"""
+    """获取回收站中已软删除的笔记列表（仅指定用户的）"""
     # 查询总数
     async with db.execute(
-        "SELECT COUNT(*) FROM notes WHERE deleted_at IS NOT NULL"
+        "SELECT COUNT(*) FROM notes WHERE deleted_at IS NOT NULL AND user_id = ?",
+        [user_id],
     ) as cur:
         total = (await cur.fetchone())[0]
 
     # 分页查询，按删除时间降序
     offset = (page - 1) * page_size
     sql = (
-        "SELECT * FROM notes WHERE deleted_at IS NOT NULL "
+        "SELECT * FROM notes WHERE deleted_at IS NOT NULL AND user_id = ? "
         "ORDER BY deleted_at DESC LIMIT ? OFFSET ?"
     )
-    async with db.execute(sql, [page_size, offset]) as cur:
+    async with db.execute(sql, [user_id, page_size, offset]) as cur:
         rows = await cur.fetchall()
 
     items = []
@@ -305,34 +318,39 @@ async def get_trash_notes(
     return {"total": total, "page": page, "page_size": page_size, "items": items}
 
 
-async def force_delete_note(db: aiosqlite.Connection, note_id: int) -> bool:
+async def force_delete_note(
+    db: aiosqlite.Connection, note_id: int, user_id: int
+) -> bool:
     """永久删除笔记（从数据库中真正删除，含标签关联）"""
     # 先删除标签关联
     await db.execute("DELETE FROM note_tags WHERE note_id = ?", [note_id])
     # 再删除笔记本身
     async with db.execute(
-        "DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL", [note_id]
+        "DELETE FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL",
+        [note_id, user_id],
     ) as cur:
         affected = cur.rowcount
     await db.commit()
     return affected > 0
 
 
-async def restore_all_notes(db: aiosqlite.Connection) -> int:
+async def restore_all_notes(db: aiosqlite.Connection, user_id: int) -> int:
     """批量恢复所有已软删除的笔记，返回恢复数量"""
     async with db.execute(
-        "UPDATE notes SET deleted_at = NULL WHERE deleted_at IS NOT NULL"
+        "UPDATE notes SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND user_id = ?",
+        [user_id],
     ) as cur:
         affected = cur.rowcount
     await db.commit()
     return affected
 
 
-async def empty_trash(db: aiosqlite.Connection) -> int:
+async def empty_trash(db: aiosqlite.Connection, user_id: int) -> int:
     """清空回收站：永久删除所有已软删除的笔记，返回删除数量"""
     # 先查询数量
     async with db.execute(
-        "SELECT COUNT(*) FROM notes WHERE deleted_at IS NOT NULL"
+        "SELECT COUNT(*) FROM notes WHERE deleted_at IS NOT NULL AND user_id = ?",
+        [user_id],
     ) as cur:
         count = (await cur.fetchone())[0]
 
@@ -342,9 +360,12 @@ async def empty_trash(db: aiosqlite.Connection) -> int:
     # 删除标签关联
     await db.execute(
         "DELETE FROM note_tags WHERE note_id IN "
-        "(SELECT id FROM notes WHERE deleted_at IS NOT NULL)"
+        "(SELECT id FROM notes WHERE deleted_at IS NOT NULL AND user_id = ?)",
+        [user_id],
     )
     # 删除笔记
-    await db.execute("DELETE FROM notes WHERE deleted_at IS NOT NULL")
+    await db.execute(
+        "DELETE FROM notes WHERE deleted_at IS NOT NULL AND user_id = ?", [user_id]
+    )
     await db.commit()
     return count
