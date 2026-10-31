@@ -10,11 +10,13 @@
     <!-- 手机端：两面板栈式导航 -->
     <template v-else>
       <!-- 第1层：笔记列表（含折叠的分类/标签） -->
-      <div v-show="mobileView === 'list'" class="mobile-panel mobile-list-panel">
+      <div v-show="mobileView === 'list'" class="mobile-panel mobile-list-panel"
+        :class="{ 'slide-out-left': mobileView === 'editor', 'slide-in-left': mobileView === 'list' && prevView === 'editor' }">
         <NoteList is-mobile @new="handleNew" @select-note="switchToEditor" />
       </div>
       <!-- 第2层：编辑器 -->
-      <div v-show="mobileView === 'editor'" class="mobile-panel mobile-editor-panel">
+      <div v-show="mobileView === 'editor'" class="mobile-panel mobile-editor-panel"
+        :class="{ 'slide-in-right': mobileView === 'editor', 'slide-out-right': mobileView === 'list' }">
         <NoteEditor show-back @back="switchToList" />
       </div>
     </template>
@@ -43,11 +45,15 @@ function checkMobile() {
 }
 
 // ====== 手机端面板切换 ======
+const prevView = ref<'list' | 'editor'>('list')
+
 function switchToEditor() {
+  prevView.value = mobileView.value
   mobileView.value = 'editor'
 }
 
 function switchToList() {
+  prevView.value = mobileView.value
   mobileView.value = 'list'
 }
 
@@ -100,5 +106,43 @@ async function handleNew() {
 
 .mobile-editor-panel {
   display: flex;
+}
+
+/* ====== 面板切换动画 (state-transition + navigation-direction) ====== */
+.slide-in-right {
+  animation: slideInRight 0.25s ease-out;
+}
+.slide-out-right {
+  animation: slideOutRight 0.2s ease-in;
+}
+.slide-out-left {
+  animation: slideOutLeft 0.2s ease-in;
+}
+.slide-in-left {
+  animation: slideInLeft 0.25s ease-out;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0.3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.3; }
+}
+@keyframes slideOutLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-30%); opacity: 0.3; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-30%); opacity: 0.3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-right, .slide-out-right, .slide-out-left, .slide-in-left {
+    animation: none;
+  }
 }
 </style>

@@ -513,6 +513,7 @@ onUnmounted(() => {
   font-size: 48px;
   margin-bottom: 12px;
 }
+
 .editor-header {
   display: flex;
   align-items: center;
@@ -790,6 +791,13 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
 }
 .btn-back:hover {
+.btn-back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.btn-back:active {
+  transform: scale(0.92);
+}
   color: var(--color-primary);
   background: var(--color-primary-bg);
 }
@@ -799,8 +807,9 @@ onUnmounted(() => {
   .note-editor {
     width: 100%;
   }
+
   .editor-header {
-    padding: 10px 12px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px;
   }
   .tag-bar {
     padding: 6px 12px;
