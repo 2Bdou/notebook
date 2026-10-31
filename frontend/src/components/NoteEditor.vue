@@ -31,6 +31,7 @@
             ><Icon name="edit" :size="14" /></button>
             <button
               class="mode-btn"
+              v-if="!showBack"
               :class="{ active: editMode === 'dual' }"
               title="双栏模式"
               @click="setEditMode('dual')"
@@ -174,7 +175,7 @@ const editorRef = ref<any>(null) // MdEditor 组件引用
 
 // 编辑模式：edit（仅编辑）/ dual（双栏）/ preview（仅预览）
 type EditMode = 'edit' | 'preview' | 'dual'
-const editMode = ref<EditMode>('dual')
+const editMode = ref<EditMode>('preview')
 
 // 保存状态：saved（已保存）/ saving（保存中）/ unsaved（未保存）/ error（保存失败）
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error'
@@ -425,7 +426,8 @@ watch(
       saveStatus.value = 'saved'
       savedTime.value = ''
       errorMsg.value = ''
-      // 切换笔记时关闭标签下拉
+      // 有内容的笔记默认预览模式，空笔记（新建）默认编辑模式
+      editMode.value = note.content.trim() ? 'preview' : 'edit'
       showTagDropdown.value = false
       newTagName.value = ''
     }
@@ -480,6 +482,13 @@ function onGlobalClick(e: MouseEvent) {
 
 // ==================== 生命周期 ====================
 onMounted(() => {
+  // 初始模式：如果有笔记已加载，应用 previewOnly
+  nextTick(() => {
+    const editor = editorRef.value
+    if (editor && editMode.value === 'preview') {
+      editor.togglePreviewOnly(true)
+    }
+  })
   initTheme()
   document.addEventListener('click', onGlobalClick)
 })
@@ -816,6 +825,37 @@ onUnmounted(() => {
   }
   .editor-footer {
     padding: 6px 12px;
+  }
+
+  /* 手机端 header 紧凑布局 */
+  .editor-header {
+    gap: 6px;
+  }
+  .title-input {
+    font-size: 16px;
+    min-width: 0;
+  }
+  .editor-actions {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .mode-btn {
+    padding: 8px;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-pin {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+  .btn-delete {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 44px;
   }
 }
 </style>
