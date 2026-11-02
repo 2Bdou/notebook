@@ -110,19 +110,15 @@
       </template>
     </div>
 
-    <!-- ====== 手机端底部 ====== -->
+    <!-- ====== 手机端底部（单行） ====== -->
     <div v-if="isMobile" class="mobile-footer">
-      <router-link to="/trash" class="trash-link">
-        <Icon name="trash" :size="16" />
-        <span>回收站</span>
+      <router-link to="/trash" class="trash-icon-btn" aria-label="回收站">
+        <Icon name="trash" :size="18" />
       </router-link>
-      <div class="user-info" v-if="authStore.user">
-        <span class="user-avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</span>
-        <span class="user-name">{{ authStore.user.username }}</span>
-        <button class="btn-logout" title="退出登录" aria-label="退出登录" @click="handleLogout">
-          <Icon name="logout" :size="16" />
-        </button>
-      </div>
+      <span v-if="authStore.user" class="user-name">{{ authStore.user.username }}</span>
+      <button v-if="authStore.user" class="btn-logout" title="退出登录" aria-label="退出登录" @click="handleLogout">
+        <Icon name="logout" :size="18" />
+      </button>
     </div>
 
     <!-- 右键菜单 -->
@@ -381,15 +377,15 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 .tag-input:focus { outline: none; box-shadow: 0 0 0 3px var(--color-primary-bg); }
 .empty-hint { padding: 6px 8px; font-size: 13px; color: var(--color-text-tertiary); }
 
-/* 手机端底部 */
-.mobile-footer { margin-top: auto; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-border); background: var(--color-bg-card); flex-shrink: 0; }
-.trash-link { display: flex; align-items: center; gap: var(--space-2); font-size: 15px; color: var(--color-text-secondary); padding: 10px 0; min-height: 44px; }
-.trash-link:hover { color: var(--color-primary); }
-.user-info { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border-light); }
-.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary); color: #fff; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* 手机端底部（单行） */
+.mobile-footer { margin-top: auto; display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--space-4); padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--color-border); background: var(--color-bg-card); flex-shrink: 0; }
+.trash-icon-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; color: var(--color-text-secondary); border-radius: var(--radius-md); flex-shrink: 0; }
+.trash-icon-btn:hover { color: var(--color-primary); background: var(--color-primary-bg); }
+.trash-icon-btn:active { transform: scale(0.92); }
 .user-name { font-size: 14px; color: var(--color-text-primary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.btn-logout { color: var(--color-text-tertiary); padding: 10px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; border: none; background: transparent; cursor: pointer; }
+.btn-logout { color: var(--color-text-tertiary); padding: 10px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; border: none; background: transparent; cursor: pointer; flex-shrink: 0; }
 .btn-logout:hover { color: var(--color-danger); background: var(--color-danger-light); }
+.btn-logout:active { transform: scale(0.92); }
 
 /* ====== 搜索框 ====== */
 .search-bar { padding: var(--space-3); border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: var(--space-2); }

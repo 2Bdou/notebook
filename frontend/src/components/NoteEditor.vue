@@ -143,6 +143,10 @@
           <span class="save-status" :class="saveStatusClass">
             {{ saveStatusText }}
           </span>
+          <button v-if="saveStatus === 'unsaved'" class="btn-save-now" aria-label="立即保存" @click="saveImmediately">
+            <Icon name="check" :size="14" />
+            <span>保存</span>
+          </button>
         </span>
       </div>
     </template>
@@ -266,7 +270,7 @@ function handlePaste(e: ClipboardEvent) {
   }
 }
 
-// ==================== 自动保存（防抖 2 秒） ====================
+// ==================== 自动保存（防抖 5 秒，可手动保存） ====================
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 /** 标记内容已修改，启动防抖保存 */
@@ -276,7 +280,7 @@ function onContentChange() {
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     doSave()
-  }, 2000)
+  }, 5000)
 }
 
 /** 执行保存请求 */
@@ -767,6 +771,28 @@ onUnmounted(() => {
   align-items: center;
 }
 /* 保存状态样式 */
+.btn-save-now {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 32px;
+  margin-left: 8px;
+  transition: all var(--transition-fast);
+}
+.btn-save-now:hover {
+  background: var(--color-primary-hover);
+}
+.btn-save-now:active {
+  transform: scale(0.95);
+}
 .save-status {
   font-weight: 500;
 }

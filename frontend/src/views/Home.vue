@@ -44,23 +44,40 @@ function checkMobile() {
   isMobile.value = window.innerWidth <= 768
 }
 
-// ====== 手机端面板切换 ======
+// ====== 手机端面板切换 + 返回手势适配 ======
 const prevView = ref<'list' | 'editor'>('list')
 
 function switchToEditor() {
   prevView.value = mobileView.value
   mobileView.value = 'editor'
+  // 推入一条历史记录，让 iOS 边缘滑动 / Android 返回手势触发 popstate
+  history.pushState({ mobileView: 'editor' }, '')
 }
 
 function switchToList() {
+  if (mobileView.value === 'list') return
   prevView.value = mobileView.value
   mobileView.value = 'list'
+  // 如果是用户点返回按钮触发的，需要回退一条历史记录
+  // popstate 会自动处理，这里手动 back 清理
+  if (history.state?.mobileView === 'editor') {
+    history.back()
+  }
+}
+
+// 监听 popstate：滑动返回 / 浏览器后退 → 切回列表（不退出应用）
+function onPopState() {
+  if (mobileView.value === 'editor') {
+    prevView.value = 'editor'
+    mobileView.value = 'list'
+  }
 }
 
 // ====== 初始化 ======
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  window.addEventListener('popstate', onPopState)
   categoryStore.fetchCategories()
   tagStore.fetchTags()
   noteStore.fetchNotes()
@@ -68,6 +85,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
+  window.removeEventListener('popstate', onPopState)
 })
 
 // 新建空白笔记并进入编辑
@@ -77,7 +95,7 @@ async function handleNew() {
   noteStore.current = note
   // 手机端新建后直接跳到编辑器
   if (isMobile.value) {
-    mobileView.value = 'editor'
+    switchToEditor()
   }
 }
 </script>
