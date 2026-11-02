@@ -356,8 +356,9 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 .mobile-btn-new:active { transform: scale(0.96); }
 
 /* 第 3 行：筛选下拉选择器 */
-.mobile-filter-row { display: flex; gap: 6px; padding: 6px var(--space-3); background: var(--color-bg); border-bottom: 1px solid var(--color-border-light); }
-.mobile-filter-select { flex: 1; padding: 8px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 13px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 44px; min-width: 0; }
+.mobile-filter-row { display: flex; gap: 8px; padding: 6px var(--space-3); background: var(--color-bg); border-bottom: 1px solid var(--color-border-light); }
+.mobile-filter-select { flex: 1; padding: 8px 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 16px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 44px; min-width: 0; }
+.mobile-filter-select:active { border-color: var(--color-primary); }
 .mobile-filter-select:focus-visible { border-color: var(--color-primary); outline: 2px solid var(--color-primary-bg); outline-offset: -1px; }
 
 /* 标签列表 */
