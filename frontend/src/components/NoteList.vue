@@ -445,6 +445,7 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 
 /* ====== Focus states (focus-states rule) ====== */
 .mobile-btn-new:focus-visible,
+.trash-icon-btn:focus-visible,
 .mobile-filter-select:focus-visible,
 .sort-order-btn:focus-visible,
 .btn-logout:focus-visible,
@@ -469,7 +470,7 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 @media (max-width: 768px) {
   .note-list { width: 100%; border-right: none; }
   .mobile-btn-new, .mobile-filter-select,
-  .tag-item, .sort-order-btn, .note-card, .btn-logout, .tag-del, .chip-close {
+  .tag-item, .sort-order-btn, .note-card, .btn-logout, .trash-icon-btn, .tag-del, .chip-close {
     touch-action: manipulation;
   }
 }

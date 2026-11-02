@@ -17,7 +17,7 @@
       <!-- 第2层：编辑器 -->
       <div v-show="mobileView === 'editor'" class="mobile-panel mobile-editor-panel"
         :class="{ 'slide-in-right': mobileView === 'editor', 'slide-out-right': mobileView === 'list' }">
-        <NoteEditor show-back @back="switchToList" />
+        <NoteEditor ref="editorRef" show-back @back="switchToList" />
       </div>
     </template>
   </div>
@@ -39,6 +39,7 @@ const tagStore = useTagStore()
 // ====== 响应式：检测手机端 ======
 const isMobile = ref(false)
 const mobileView = ref<'list' | 'editor'>('list')
+const editorRef = ref<InstanceType<typeof NoteEditor> | null>(null)
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 768
@@ -54,8 +55,14 @@ function switchToEditor() {
   history.pushState({ mobileView: 'editor' }, '')
 }
 
+/** 返回列表前，先保存未保存的内容（防止 30s 防抖期间丢失） */
+function saveBeforeLeave() {
+  editorRef.value?.saveImmediately?.()
+}
+
 function switchToList() {
   if (mobileView.value === 'list') return
+  saveBeforeLeave()
   prevView.value = mobileView.value
   mobileView.value = 'list'
   // 如果是用户点返回按钮触发的，需要回退一条历史记录
@@ -68,6 +75,7 @@ function switchToList() {
 // 监听 popstate：滑动返回 / 浏览器后退 → 切回列表（不退出应用）
 function onPopState() {
   if (mobileView.value === 'editor') {
+    saveBeforeLeave()
     prevView.value = 'editor'
     mobileView.value = 'list'
   }

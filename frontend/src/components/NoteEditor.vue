@@ -270,7 +270,7 @@ function handlePaste(e: ClipboardEvent) {
   }
 }
 
-// ==================== 自动保存（防抖 5 秒，可手动保存） ====================
+// ==================== 自动保存（防抖 30 秒，可手动保存） ====================
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 /** 标记内容已修改，启动防抖保存 */
@@ -280,7 +280,7 @@ function onContentChange() {
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     doSave()
-  }, 5000)
+  }, 30000)
 }
 
 /** 执行保存请求 */
@@ -496,6 +496,9 @@ onMounted(() => {
   initTheme()
   document.addEventListener('click', onGlobalClick)
 })
+
+// 暴露保存方法给父组件（返回列表前触发保存）
+defineExpose({ saveImmediately })
 
 onUnmounted(() => {
   if (saveTimer) clearTimeout(saveTimer)
@@ -783,7 +786,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  min-height: 32px;
+  min-height: 44px;
   margin-left: 8px;
   transition: all var(--transition-fast);
 }
@@ -791,6 +794,10 @@ onUnmounted(() => {
   background: var(--color-primary-hover);
 }
 .btn-save-now:active {
+.btn-save-now:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
   transform: scale(0.95);
 }
 .save-status {
