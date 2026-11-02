@@ -1,93 +1,46 @@
 <template>
   <div class="note-list">
-    <!-- ====== 手机端：折叠式侧边栏内容 ====== -->
-    <div v-if="isMobile" class="mobile-sidebar-merge">
-      <div class="mobile-header">
-        <div class="mobile-logo-row">
-          <Icon name="notebook" :size="20" :stroke-width="1.8" class="logo-icon" />
-          <h1 class="mobile-logo">记事本</h1>
+    <!-- ====== 手机端：紧凑工具栏（3 行） ====== -->
+    <div v-if="isMobile" class="mobile-toolbar">
+      <!-- 第 1 行：logo + 新建 + 用户 -->
+      <div class="mobile-top-bar">
+        <div class="mobile-brand">
+          <Icon name="notebook" :size="18" :stroke-width="1.8" class="logo-icon" />
+          <span class="mobile-logo">记事本</span>
         </div>
-        <button class="mobile-btn-new" @click="$emit('new')">
+        <button class="mobile-btn-new" @click="$emit('new')" aria-label="新建笔记">
           <Icon name="plus" :size="16" />
-          <span>新建笔记</span>
+          <span>新建</span>
         </button>
       </div>
 
+      <!-- 第 2 行：搜索框 -->
       <div class="search-bar">
         <Icon name="search" :size="16" class="search-icon" />
         <input v-model="keyword" class="search-input" placeholder="搜索笔记..." aria-label="搜索笔记" @input="onSearch" />
         <Icon v-if="noteStore.searching" name="loader" :size="16" class="search-loading spin" />
       </div>
 
-      <div class="mobile-collapsible-sections">
-        <button class="mobile-all-notes" :class="{ active: !hasCategoryFilter && !hasTagFilter }" @click="showAllNotes" aria-label="显示全部笔记">
-          <Icon name="list" :size="16" />
-          <span>全部笔记</span>
-        </button>
-
-        <div class="mobile-section">
-          <button class="mobile-section-header" @click="toggleSection('category')">
-            <Icon name="chevron-down" :size="14" class="collapse-arrow" :class="{ rotated: !expandedSections.category }" />
-            <span class="section-title">分类</span>
-            <button class="btn-add-inline" title="新建分类" aria-label="新建分类" @click.stop="openCreateCategory">
-              <Icon name="plus" :size="14" />
-            </button>
-          </button>
-          <div v-show="expandedSections.category" class="mobile-section-body">
-            <CategoryTree
-              :categories="categoryStore.categories"
-              :selected-id="noteStore.filter.category_id"
-              @select="onSelectCategory"
-              @rename="onRenameCategory"
-              @delete="onDeleteCategory"
-              @add-sub="onAddSubCategory"
-            />
-          </div>
-        </div>
-
-        <div class="mobile-section">
-          <button class="mobile-section-header" @click="toggleSection('tag')">
-            <Icon name="chevron-down" :size="14" class="collapse-arrow" :class="{ rotated: !expandedSections.tag }" />
-            <span class="section-title">标签</span>
-            <button class="btn-add-inline" title="新建标签" aria-label="新建标签" @click.stop="openCreateTag">
-              <Icon name="plus" :size="14" />
-            </button>
-          </button>
-          <div v-show="expandedSections.tag" class="mobile-section-body">
-            <div v-if="tagCreating" class="tag-create-form">
-              <input v-model="newTagName" class="tag-input" placeholder="标签名称" maxlength="20"
-                @keydown.enter="confirmCreateTag" @keydown.esc="cancelCreateTag" @blur="confirmCreateTag" />
-            </div>
-            <ul class="tag-list">
-              <li v-for="tag in tagStore.tags" :key="tag.id" class="tag-item"
-                :class="{ active: noteStore.filter.tag_id === tag.id }" role="button" tabindex="0" @click="onSelectTag(tag.id)" @keydown.enter="onSelectTag(tag.id)" @keydown.space.prevent="onSelectTag(tag.id)">
-                <Icon name="tag" :size="14" class="tag-icon" />
-                <span class="tag-name">{{ tag.name }}</span>
-                <span class="tag-right">
-                  <span class="tag-count">{{ tag.note_count }}</span>
-                  <button class="tag-del" title="删除标签" aria-label="删除标签" @click.stop="onDeleteTag(tag)">
-                    <Icon name="x" :size="12" />
-                  </button>
-                </span>
-              </li>
-              <li v-if="!tagStore.tags.length && !tagCreating" class="empty-hint">暂无标签</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="sort-bar">
-        <select class="sort-select" aria-label="排序方式" :value="noteStore.filter.sort" @change="onSortChange">
-          <option value="updated_at">更新时间</option>
-          <option value="created_at">创建时间</option>
-          <option value="title">标题</option>
-          <option value="word_count">字数</option>
+      <!-- 第 3 行：分类 + 标签 + 排序 下拉选择器 -->
+      <div class="mobile-filter-row">
+        <select class="mobile-filter-select" aria-label="筛选分类" :value="noteStore.filter.category_id ?? ''" @change="onMobileCategoryChange">
+          <option value="">全部分类</option>
+          <option v-for="cat in flatCategories" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
         </select>
-        <button class="sort-order-btn" :aria-label="noteStore.filter.order === 'desc' ? '降序' : '升序'" @click="toggleOrder">
-          <Icon :name="noteStore.filter.order === 'desc' ? 'arrow-down' : 'arrow-up'" :size="14" />
-        </button>
+        <select class="mobile-filter-select" aria-label="筛选标签" :value="noteStore.filter.tag_id ?? ''" @change="onMobileTagChange">
+          <option value="">全部标签</option>
+          <option v-for="tag in tagStore.tags" :key="tag.id" :value="tag.id">{{ tag.name }} ({{ tag.note_count }})</option>
+        </select>
+        <select class="mobile-filter-select" aria-label="排序" :value="noteStore.filter.sort + '-' + noteStore.filter.order" @change="onMobileSortChange">
+          <option value="updated_at-desc">更新↓</option>
+          <option value="updated_at-asc">更新↑</option>
+          <option value="created_at-desc">创建↓</option>
+          <option value="title-asc">标题A-Z</option>
+          <option value="title-desc">标题Z-A</option>
+        </select>
       </div>
     </div>
+
 
     <!-- ====== 桌面端：搜索框 + 排序栏 ====== -->
     <template v-if="!isMobile">
@@ -192,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '@/components/Icon.vue'
 import CategoryTree from '@/components/CategoryTree.vue'
@@ -251,9 +204,39 @@ watch(() => noteStore.filter, (f) => {
 }, { deep: true, immediate: true })
 function showAllNotes() { noteStore.clearFilters() }
 
-// ====== 折叠区 ======
+// ====== 折叠区（桌面端用） ======
 const expandedSections = reactive({ category: false, tag: false })
 function toggleSection(key: 'category' | 'tag') { expandedSections[key] = !expandedSections[key] }
+
+// ====== 手机端：展平分类树为 select 选项 ======
+const flatCategories = computed(() => {
+  const result: { id: number; label: string }[] = []
+  function flatten(cats: Category[], depth: number) {
+    for (const c of cats) {
+      result.push({ id: c.id, label: depth > 0 ? '┣ ' + '　'.repeat(depth - 1) + c.name : c.name })
+      if (c.children?.length) flatten(c.children, depth + 1)
+    }
+  }
+  flatten(categoryStore.categories, 0)
+  return result
+})
+
+// ====== 手机端下拉选择器事件 ======
+function onMobileCategoryChange(e: Event) {
+  const val = (e.target as HTMLSelectElement).value
+  noteStore.setCategoryFilter(val ? Number(val) : undefined)
+}
+function onMobileTagChange(e: Event) {
+  const val = (e.target as HTMLSelectElement).value
+  noteStore.setTagFilter(val ? Number(val) : undefined)
+}
+function onMobileSortChange(e: Event) {
+  const val = (e.target as HTMLSelectElement).value
+  const [sort, order] = val.split('-')
+  noteStore.setSort(sort as SortField)
+  noteStore.setOrder(order as SortOrder)
+  saveSortState()
+}
 
 // ====== 分类操作 ======
 const modalVisible = ref(false)
@@ -363,28 +346,19 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 <style scoped>
 .note-list { width: 320px; flex-shrink: 0; background: var(--color-bg-card); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; }
 
-/* ====== 手机端合并区 ====== */
-.mobile-sidebar-merge { flex-shrink: 0; }
-.mobile-header { padding: var(--space-3) var(--space-4); background: var(--color-sidebar-bg); }
-.mobile-logo-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
+/* ====== 手机端紧凑工具栏 ====== */
+.mobile-toolbar { flex-shrink: 0; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); }
+.mobile-top-bar { display: flex; align-items: center; gap: var(--space-2); padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--space-3); background: var(--color-sidebar-bg); }
+.mobile-brand { display: flex; align-items: center; gap: var(--space-2); flex: 1; }
 .logo-icon { color: var(--color-primary); }
-.mobile-logo { font-size: 18px; font-weight: 600; color: #f1f5f9; }
-.mobile-btn-new { width: 100%; padding: 12px; background: var(--color-primary); color: #fff; border-radius: var(--radius-md); font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 44px; border: none; cursor: pointer; }
-.mobile-btn-new:active { transform: scale(0.98); }
+.mobile-logo { font-size: 16px; font-weight: 600; color: #f1f5f9; }
+.mobile-btn-new { padding: 8px 14px; background: var(--color-primary); color: #fff; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 4px; min-height: 44px; border: none; cursor: pointer; flex-shrink: 0; }
+.mobile-btn-new:active { transform: scale(0.96); }
 
-.mobile-collapsible-sections { background: var(--color-bg); padding: var(--space-2) var(--space-3); }
-.mobile-all-notes { display: flex; align-items: center; gap: var(--space-2); padding: 10px 12px; border-radius: var(--radius-md); cursor: pointer; font-size: 15px; font-weight: 500; min-height: 44px; color: var(--color-text-primary); width: 100%; border: none; background: transparent; text-align: left; }
-.mobile-all-notes:hover { background: var(--color-primary-bg); }
-.mobile-all-notes.active { background: var(--color-primary); color: #fff; }
-.mobile-section { margin-top: 4px; }
-.mobile-section-header { width: 100%; display: flex; align-items: center; gap: var(--space-2); padding: 10px 12px; border-radius: var(--radius-md); font-size: 15px; color: var(--color-text-primary); min-height: 44px; border: none; background: transparent; cursor: pointer; text-align: left; }
-.mobile-section-header:hover { background: var(--color-primary-bg); }
-.collapse-arrow { transition: transform var(--transition-fast); }
-.collapse-arrow.rotated { transform: rotate(-90deg); }
-.section-title { flex: 1; font-weight: 500; }
-.btn-add-inline { color: var(--color-text-tertiary); display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-sm); border: none; background: transparent; cursor: pointer; flex-shrink: 0; }
-.btn-add-inline:hover { color: var(--color-primary); background: var(--color-primary-light); }
-.mobile-section-body { padding: 4px 0 4px 12px; }
+/* 第 3 行：筛选下拉选择器 */
+.mobile-filter-row { display: flex; gap: 6px; padding: 6px var(--space-3); background: var(--color-bg); border-bottom: 1px solid var(--color-border-light); }
+.mobile-filter-select { flex: 1; padding: 8px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 13px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 44px; min-width: 0; }
+.mobile-filter-select:focus-visible { border-color: var(--color-primary); outline: 2px solid var(--color-primary-bg); outline-offset: -1px; }
 
 /* 标签列表 */
 .tag-list { list-style: none; }
@@ -470,14 +444,11 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .spin { animation: none; }
-  .collapse-arrow { transition: none; }
 }
 
 /* ====== Focus states (focus-states rule) ====== */
 .mobile-btn-new:focus-visible,
-.mobile-all-notes:focus-visible,
-.mobile-section-header:focus-visible,
-.btn-add-inline:focus-visible,
+.mobile-filter-select:focus-visible,
 .sort-order-btn:focus-visible,
 .btn-logout:focus-visible,
 .tag-del:focus-visible,
@@ -488,19 +459,11 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 }
 
 /* ====== Press feedback (press-feedback rule) ====== */
-.mobile-all-notes:active,
-.mobile-section-header:active,
 .note-card:active {
   transform: scale(0.98);
 }
-.btn-add-inline:active {
-  transform: scale(0.92);
-}
 
 /* ====== Safe area insets (safe-area-awareness rule) ====== */
-.mobile-header {
-  padding-top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
-}
 .mobile-footer {
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
 }
@@ -508,7 +471,7 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 /* ====== 手机端：全屏宽度 ====== */
 @media (max-width: 768px) {
   .note-list { width: 100%; border-right: none; }
-  .mobile-btn-new, .mobile-all-notes, .mobile-section-header, .btn-add-inline,
+  .mobile-btn-new, .mobile-filter-select,
   .tag-item, .sort-order-btn, .note-card, .btn-logout, .tag-del, .chip-close {
     touch-action: manipulation;
   }
