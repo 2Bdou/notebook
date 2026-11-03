@@ -114,8 +114,6 @@ note_tags (note_id, tag_id)  -- 多对多关联
 - Icon 组件统一用 `Icon.vue`，不使用 emoji
 - API 响应格式：`{ code: 0, message: "success", data: ... }`
 
-### 7. Git 约定
-
 - 双远程：GitHub (`origin`) + GitCode (`devspace`)
 - commit message 中文，格式：`type(scope): 描述`（feat/fix/chore/docs）
 - 推送前先 `npm run build` 验证编译通过
