@@ -145,7 +145,7 @@ async function handleImport(e: Event) {
 .backup-header { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); }
 .back-link { display: flex; align-items: center; gap: var(--space-1); color: var(--color-primary); text-decoration: none; font-size: 14px; font-weight: 500; transition: color var(--transition-fast); min-height: 44px; }
 .back-link:hover { color: var(--color-primary-hover); }
-.back-link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+.back-link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .backup-title { font-size: 20px; flex: 1; display: flex; align-items: center; gap: var(--space-2); color: var(--color-text-primary); }
 
 /* 卡片 */
@@ -177,8 +177,8 @@ async function handleImport(e: Event) {
 .file-input { display: none; }
 
 /* 结果卡片 */
-.result-card { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-success-light, #f0fdf4); border-radius: var(--radius-lg); border: 1px solid var(--color-success, #22c55e); }
-.result-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--color-success, #22c55e); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.result-card { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-success-light); border-radius: var(--radius-lg); border: 1px solid var(--color-success); }
+.result-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--color-success); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .result-content { flex: 1; }
 .result-title { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; }
 .result-detail { font-size: 13px; color: var(--color-text-secondary); }
