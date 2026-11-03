@@ -84,21 +84,25 @@ function formatDateTime(dateStr: string | null): string {
 </script>
 
 <style scoped>
-.trash-page { max-width: 800px; margin: 0 auto; padding: var(--space-6); }
+.trash-page { max-width: 800px; margin: 0 auto; padding: var(--space-6); padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px)); }
 .trash-header { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); }
-.back-link { display: flex; align-items: center; gap: var(--space-1); color: var(--color-primary); text-decoration: none; font-size: 14px; font-weight: 500; transition: color var(--transition-fast); }
+.back-link { display: flex; align-items: center; gap: var(--space-1); color: var(--color-primary); text-decoration: none; font-size: 14px; font-weight: 500; transition: color var(--transition-fast); min-height: 44px; touch-action: manipulation; }
 .back-link:hover { color: var(--color-primary-hover); }
+.back-link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.back-link:active { transform: scale(0.96); }
 .trash-title { font-size: 20px; flex: 1; display: flex; align-items: center; gap: var(--space-2); color: var(--color-text-primary); }
 .trash-count { font-size: 14px; color: var(--color-text-tertiary); font-weight: normal; }
 .trash-actions { display: flex; gap: var(--space-2); }
-.btn-restore-all { padding: 8px 14px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-primary); font-size: 13px; cursor: pointer; font-weight: 500; transition: all var(--transition-fast); }
+.btn-restore-all { padding: 8px 14px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-primary); font-size: 13px; cursor: pointer; font-weight: 500; transition: all var(--transition-fast); min-height: 44px; touch-action: manipulation; }
 .btn-restore-all:hover { background: var(--color-primary-light); }
-.btn-empty-trash { padding: 8px 14px; border: 1px solid var(--color-danger); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-danger); font-size: 13px; cursor: pointer; font-weight: 500; transition: all var(--transition-fast); }
+.btn-restore-all:active { transform: scale(0.96); }
+.btn-empty-trash { padding: 8px 14px; border: 1px solid var(--color-danger); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-danger); font-size: 13px; cursor: pointer; font-weight: 500; transition: all var(--transition-fast); min-height: 44px; touch-action: manipulation; }
 .btn-empty-trash:hover { background: var(--color-danger-light); }
+.btn-empty-trash:active { transform: scale(0.96); }
 .trash-body { background: var(--color-bg-card); border-radius: var(--radius-lg); border: 1px solid var(--color-border); overflow: hidden; }
 .loading-state { text-align: center; color: var(--color-text-tertiary); padding: 40px 0; font-size: 14px; }
 .empty-state { text-align: center; color: var(--color-text-tertiary); padding: 60px 0; }
-.empty-icon { color: var(--color-text-disabled); margin-bottom: var(--space-3); }
+.empty-icon { color: var(--color-text-tertiary); margin-bottom: var(--space-3); }
 .trash-item { display: flex; align-items: flex-start; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-light); gap: var(--space-4); transition: background var(--transition-fast); }
 .trash-item:last-child { border-bottom: none; }
 .trash-item:hover { background: var(--color-bg); }
@@ -106,11 +110,13 @@ function formatDateTime(dateStr: string | null): string {
 .trash-item-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--color-text-primary); }
 .trash-item-summary { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .trash-item-meta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-text-tertiary); }
-.meta-label { color: var(--color-text-disabled); }
+.meta-label { color: var(--color-text-tertiary); }
 .meta-separator { color: var(--color-border); margin: 0 4px; }
 .trash-item-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
-.btn-restore { padding: 6px 12px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-primary); font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: 500; transition: all var(--transition-fast); }
+.btn-restore { padding: 6px 12px; border: 1px solid var(--color-primary); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-primary); font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: 500; transition: all var(--transition-fast); min-height: 44px; touch-action: manipulation; }
 .btn-restore:hover { background: var(--color-primary-light); }
-.btn-force-delete { padding: 6px 12px; border: 1px solid var(--color-danger); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-danger); font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: 500; transition: all var(--transition-fast); }
+.btn-restore:active { transform: scale(0.95); }
+.btn-force-delete { padding: 6px 12px; border: 1px solid var(--color-danger); border-radius: var(--radius-md); background: var(--color-bg-card); color: var(--color-danger); font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: 500; transition: all var(--transition-fast); min-height: 44px; touch-action: manipulation; }
 .btn-force-delete:hover { background: var(--color-danger-light); }
+.btn-force-delete:active { transform: scale(0.95); }
 </style>
