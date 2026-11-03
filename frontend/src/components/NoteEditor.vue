@@ -191,12 +191,14 @@ const errorMsg = ref('') // 保存失败错误信息
 const isDark = ref(false)
 let mediaQuery: MediaQueryList | null = null
 
+function onThemeChange(e: MediaQueryListEvent) {
+  isDark.value = e.matches
+}
+
 function initTheme() {
   mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   isDark.value = mediaQuery.matches
-  mediaQuery.addEventListener('change', (e) => {
-    isDark.value = e.matches
-  })
+  mediaQuery.addEventListener('change', onThemeChange)
 }
 
 // 编辑器主题：light / dark
@@ -503,7 +505,7 @@ defineExpose({ saveImmediately })
 onUnmounted(() => {
   if (saveTimer) clearTimeout(saveTimer)
   if (mediaQuery) {
-    mediaQuery.removeEventListener('change', () => {})
+    mediaQuery.removeEventListener('change', onThemeChange)
   }
   document.removeEventListener('click', onGlobalClick)
 })
@@ -546,7 +548,7 @@ onUnmounted(() => {
   background: transparent;
 }
 .title-input:focus {
-  border-bottom: 1px solid #42b983;
+  border-bottom: 1px solid var(--color-primary);
   outline: none;
 }
 .editor-actions {
@@ -574,6 +576,9 @@ onUnmounted(() => {
 .mode-btn:hover {
   background: var(--color-border);
 }
+.mode-btn:active {
+  transform: scale(0.92);
+}
 .mode-btn.active {
   background: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
@@ -600,6 +605,10 @@ onUnmounted(() => {
 .btn-delete:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
+}
+.btn-pin:active,
+.btn-delete:active {
+  transform: scale(0.95);
 }
 /* 标签关联区域 */
 .tag-bar {
@@ -641,9 +650,24 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 10px;
   color: var(--color-primary);
-  padding: 0;
+  padding: 4px;
+  margin: -4px;
   line-height: 1;
   opacity: 0.5;
+  position: relative;
+  touch-action: manipulation;
+}
+
+/* 伪元素扩展点击热区至 44px，不撑破 chip 视觉 */
+.tag-remove::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+
+.tag-remove:active {
+  opacity: 1;
+  transform: scale(0.85);
 }
 .tag-remove:hover {
   opacity: 1;
@@ -651,7 +675,7 @@ onUnmounted(() => {
 }
 .no-tags-hint {
   font-size: 12px;
-  color: var(--color-text-disabled);
+  color: var(--color-text-tertiary);
 }
 /* 添加标签按钮 + 下拉 */
 .tag-bar-right {
@@ -659,16 +683,21 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .btn-add-tag {
-  padding: 4px 10px;
-  border: 1px dashed #42b983;
+  padding: 6px 10px;
+  border: 1px dashed var(--color-primary);
   border-radius: 4px;
   background: transparent;
   color: var(--color-primary);
   font-size: 12px;
   cursor: pointer;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 .btn-add-tag:hover {
   background: var(--color-primary-light);
+}
+.btn-add-tag:active {
+  transform: scale(0.95);
 }
 /* 标签下拉面板 */
 .tag-dropdown {
@@ -693,11 +722,12 @@ onUnmounted(() => {
 }
 .tag-new-input {
   flex: 1;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 16px;
   min-width: 0;
+  min-height: 44px;
 }
 .tag-new-input:focus {
   border-color: var(--color-primary);
@@ -712,9 +742,15 @@ onUnmounted(() => {
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.tag-new-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 .tag-new-btn:disabled {
-  background: #a5d6b8;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   cursor: not-allowed;
 }
 /* 标签列表 */
@@ -729,9 +765,14 @@ onUnmounted(() => {
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 .tag-dropdown-item:hover {
   background: var(--color-primary-bg);
+}
+.tag-dropdown-item:active {
+  background: var(--color-primary-light);
 }
 .tag-dropdown-count {
   font-size: 11px;
@@ -740,7 +781,7 @@ onUnmounted(() => {
 .tag-dropdown-empty {
   padding: 12px;
   font-size: 13px;
-  color: var(--color-text-disabled);
+  color: var(--color-text-tertiary);
   text-align: center;
 }
 .editor-body {
@@ -764,7 +805,7 @@ onUnmounted(() => {
   gap: 8px;
 }
 .separator {
-  color: #ddd;
+  color: var(--color-border);
 }
 .mode-label {
   color: var(--color-text-tertiary);
@@ -794,11 +835,11 @@ onUnmounted(() => {
   background: var(--color-primary-hover);
 }
 .btn-save-now:active {
+  transform: scale(0.95);
+}
 .btn-save-now:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-  transform: scale(0.95);
 }
 .save-status {
   font-weight: 500;
@@ -816,11 +857,7 @@ onUnmounted(() => {
   color: var(--color-danger);
 }
 
-/* 暗色模式适配 */
-:global(.dark) .note-editor,
-:global([data-theme='dark']) .note-editor {
-  background: #1e1e1e;
-}
+
 /* 手机端返回按钮 */
 .btn-back {
   display: flex;
@@ -833,15 +870,15 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
 }
 .btn-back:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
 .btn-back:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .btn-back:active {
   transform: scale(0.92);
-}
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
 }
 
 /* ====== 手机端全屏 ====== */
