@@ -115,6 +115,9 @@
       <router-link to="/trash" class="trash-icon-btn" aria-label="回收站">
         <Icon name="trash" :size="18" />
       </router-link>
+      <router-link to="/backup" class="trash-icon-btn" aria-label="备份">
+        <Icon name="download" :size="18" />
+      </router-link>
       <span v-if="authStore.user" class="user-name">{{ authStore.user.username }}</span>
       <button v-if="authStore.user" class="btn-logout" title="退出登录" aria-label="退出登录" @click="handleLogout">
         <Icon name="logout" :size="18" />

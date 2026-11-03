@@ -20,6 +20,11 @@ const router = createRouter({
       path: '/trash',
       name: 'trash',
       component: () => import('@/views/Trash.vue')
+    },
+    {
+      path: '/backup',
+      name: 'backup',
+      component: () => import('@/views/Backup.vue')
     }
   ]
 })

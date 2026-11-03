@@ -89,6 +89,10 @@
         <Icon name="trash" :size="16" />
         <span>回收站</span>
       </router-link>
+      <router-link to="/backup" class="trash-link">
+        <Icon name="download" :size="16" />
+        <span>备份</span>
+      </router-link>
       <div class="user-info" v-if="authStore.user">
         <span class="user-avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</span>
         <span class="user-name">{{ authStore.user.username }}</span>

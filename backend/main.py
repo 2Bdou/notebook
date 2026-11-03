@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import notes, categories, tags, search, auth
+from routers import notes, categories, tags, search, auth, backup
 
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.include_router(notes.router, prefix="/api")
 app.include_router(categories.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
+app.include_router(backup.router, prefix="/api")
 
 
 @app.get("/api/health")
