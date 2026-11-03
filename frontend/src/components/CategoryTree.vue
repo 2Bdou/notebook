@@ -124,15 +124,17 @@ function onDelete(cat: Category) { emit('delete', cat) }
 .category-row { display: flex; align-items: center; gap: 4px; padding: 5px 8px; border-radius: var(--radius-md); cursor: pointer; font-size: 14px; position: relative; transition: background var(--transition-fast); min-height: 32px; }
 .category-row:hover { background: var(--color-sidebar-hover); }
 .category-row.active { background: var(--color-primary); }
-.category-row.active .cat-name { color: #fff; font-weight: 500; }
+.category-row.active .cat-name { color: var(--color-sidebar-text-bright); font-weight: 500; }
+.category-row:active { transform: scale(0.98); }
 .expand-icon { width: 16px; text-align: center; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-sidebar-text-muted); }
 .expand-icon:hover { color: #fff; }
 .cat-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.rename-input { flex: 1; padding: 2px 6px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); font-size: 14px; background: #0f172a; color: #fff; outline: none; min-width: 0; }
+.rename-input { flex: 1; padding: 2px 6px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); font-size: 14px; background: var(--color-bg-deep); color: var(--color-sidebar-text-bright); outline: none; min-width: 0; }
 .cat-actions { display: none; gap: 2px; flex-shrink: 0; }
 .category-row:hover .cat-actions { display: flex; }
 .action-btn { border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-sidebar-text-muted); padding: 4px; border-radius: var(--radius-sm); line-height: 1; transition: all var(--transition-fast); }
-.action-btn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.action-btn:hover { background: rgba(255, 255, 255, 0.15); color: var(--color-sidebar-text-bright); }
+.action-btn:active { transform: scale(0.88); }
 .action-btn.del:hover { color: var(--color-danger); background: rgba(231, 76, 60, 0.15); }
 .empty-hint { padding: 6px 8px; font-size: 13px; color: var(--color-sidebar-text-muted); }
 </style>
