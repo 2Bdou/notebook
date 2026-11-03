@@ -92,8 +92,9 @@ onMounted(() => { nextTick(() => nameInput.value?.focus()) })
 .modal-box { width: 400px; background: var(--color-bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border); }
 .modal-title { font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
-.modal-close { border: none; background: none; cursor: pointer; color: var(--color-text-tertiary); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: var(--radius-sm); transition: all var(--transition-fast); }
+.modal-close { border: none; background: none; cursor: pointer; color: var(--color-text-tertiary); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 4px; border-radius: var(--radius-sm); transition: all var(--transition-fast); touch-action: manipulation; }
 .modal-close:hover { color: var(--color-text-primary); background: var(--color-bg); }
+.modal-close:active { transform: scale(0.92); }
 .modal-body { padding: var(--space-5); }
 .form-field { margin-bottom: var(--space-4); }
 .field-label { display: block; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; font-weight: 500; }
@@ -101,16 +102,31 @@ onMounted(() => { nextTick(() => nameInput.value?.focus()) })
 .field-input:focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 3px var(--color-primary-bg); }
 .parent-select { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 14px; background: var(--color-bg-card); color: var(--color-text-primary); transition: border-color var(--transition-fast); }
 .parent-select:hover { border-color: var(--color-primary); }
+.parent-select:active { border-color: var(--color-primary); }
 .dropdown-arrow { color: var(--color-text-tertiary); flex-shrink: 0; }
 .parent-dropdown { margin-top: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); max-height: 200px; overflow-y: auto; background: var(--color-bg-card); box-shadow: var(--shadow-md); }
-.dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; white-space: nowrap; color: var(--color-text-primary); transition: background var(--transition-fast); min-height: 36px; display: flex; align-items: center; }
+.dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; white-space: nowrap; color: var(--color-text-primary); transition: background var(--transition-fast); min-height: 44px; display: flex; align-items: center; touch-action: manipulation; }
 .dropdown-item:hover { background: var(--color-primary-bg); }
+.dropdown-item:active { background: var(--color-primary-light); }
 .dropdown-item.selected { background: var(--color-primary-light); color: var(--color-primary-hover); font-weight: 500; }
 .modal-footer { display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border); }
-.btn-cancel, .btn-confirm { padding: 10px 20px; border-radius: var(--radius-md); font-size: 14px; cursor: pointer; border: none; font-weight: 500; transition: all var(--transition-fast); }
+.btn-cancel, .btn-confirm { padding: 10px 20px; border-radius: var(--radius-md); font-size: 14px; cursor: pointer; border: none; font-weight: 500; transition: all var(--transition-fast); min-height: 44px; touch-action: manipulation; }
+.btn-cancel:active { transform: scale(0.96); }
+.btn-confirm:active:not(:disabled) { transform: scale(0.96); }
 .btn-cancel { background: var(--color-bg); color: var(--color-text-secondary); }
 .btn-cancel:hover { background: var(--color-border-light); }
 .btn-confirm { background: var(--color-primary); color: #fff; }
 .btn-confirm:hover { background: var(--color-primary-hover); }
 .btn-confirm:disabled { background: var(--color-primary-light); color: var(--color-primary); cursor: not-allowed; opacity: 0.6; }
+
+/* ====== 移动端：输入字号 ≥16px + 触摸目标 ≥44px ====== */
+@media (max-width: 768px) {
+  .field-input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .parent-select {
+    min-height: 44px;
+  }
+}
 </style>
