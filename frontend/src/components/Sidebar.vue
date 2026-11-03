@@ -292,7 +292,7 @@ async function onDeleteTag(tag: Tag) {
 .logo {
   font-size: 18px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--color-sidebar-text-bright);
 }
 
 .btn-new {
@@ -346,6 +346,10 @@ async function onDeleteTag(tag: Tag) {
   color: #fff;
 }
 
+.all-notes-btn:active {
+  transform: scale(0.98);
+}
+
 /* 区块标题 */
 .section-header {
   display: flex;
@@ -381,6 +385,10 @@ async function onDeleteTag(tag: Tag) {
   background: var(--color-sidebar-hover);
 }
 
+.btn-add:active {
+  transform: scale(0.9);
+}
+
 /* 标签列表 */
 .tag-list {
   list-style: none;
@@ -404,6 +412,10 @@ async function onDeleteTag(tag: Tag) {
 .tag-item.active {
   background: var(--color-primary);
   color: #fff;
+}
+
+.tag-item:active {
+  transform: scale(0.98);
 }
 
 .tag-icon {
@@ -464,6 +476,10 @@ async function onDeleteTag(tag: Tag) {
   background: rgba(231, 76, 60, 0.15);
 }
 
+.tag-del:active {
+  transform: scale(0.88);
+}
+
 /* 新建标签输入框 */
 .tag-create-form {
   padding: 0 var(--space-2) 6px;
@@ -475,14 +491,14 @@ async function onDeleteTag(tag: Tag) {
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   font-size: 13px;
-  background: #0f172a;
-  color: #fff;
+  background: var(--color-bg-deep);
+  color: var(--color-sidebar-text-bright);
   box-sizing: border-box;
 }
 
 .tag-input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.15);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
 }
 
 /* 空提示 */
@@ -513,7 +529,7 @@ async function onDeleteTag(tag: Tag) {
 }
 
 .trash-link:hover {
-  color: #f1f5f9;
+  color: var(--color-sidebar-text-bright);
 }
 .trash-link:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -549,7 +565,7 @@ async function onDeleteTag(tag: Tag) {
 
 .user-name {
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--color-sidebar-text-bright);
   flex: 1;
   overflow: hidden;
   white-space: nowrap;
@@ -569,6 +585,10 @@ async function onDeleteTag(tag: Tag) {
 .btn-logout:hover {
   color: var(--color-danger);
   background: rgba(231, 76, 60, 0.1);
+}
+
+.btn-logout:active {
+  transform: scale(0.92);
 }
 
 /* 响应式：移动端侧边栏 */
