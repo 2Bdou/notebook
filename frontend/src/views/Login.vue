@@ -191,8 +191,9 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   min-height: 100dvh;
-  background: linear-gradient(135deg, #1e2937 0%, #0f172a 100%);
+  background: linear-gradient(135deg, var(--color-sidebar-bg) 0%, var(--color-bg-deep) 100%);
   padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
 }
 
 .login-card {
@@ -257,7 +258,7 @@ async function handleSubmit() {
 .field-input:focus {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.15);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
 }
 
 /* 密码显示/隐藏切换 */
@@ -267,21 +268,26 @@ async function handleSubmit() {
 
 .password-toggle {
   position: absolute;
-  right: 8px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast);
+  touch-action: manipulation;
 }
 
 .password-toggle:hover {
   color: var(--color-text-secondary);
+}
+
+.password-toggle:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 .error-msg {
@@ -309,6 +315,7 @@ async function handleSubmit() {
   justify-content: center;
   gap: var(--space-2);
   min-height: 44px;
+  touch-action: manipulation;
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -334,6 +341,14 @@ async function handleSubmit() {
 .login-footer a {
   color: var(--color-primary);
   font-weight: 500;
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+}
+
+.login-footer a:active {
+  opacity: 0.7;
 }
 
 .login-footer a:hover {
@@ -342,6 +357,13 @@ async function handleSubmit() {
 
 .reg-closed-hint {
   color: var(--color-danger);
+}
+
+/* ====== 移动端：输入框字号 ≥16px，防 iOS 聚焦自动放大 ====== */
+@media (max-width: 768px) {
+  .field-input {
+    font-size: 16px;
+  }
 }
 
 /* 加载动画 */
