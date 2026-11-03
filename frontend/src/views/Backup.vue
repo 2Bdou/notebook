@@ -171,6 +171,8 @@ async function handleImport(e: Event) {
 
 .btn-text { padding: 8px 12px; border: none; background: transparent; color: var(--color-text-tertiary); font-size: 13px; cursor: pointer; min-height: 44px; border-radius: var(--radius-md); }
 .btn-text:hover { color: var(--color-text-primary); background: var(--color-bg); }
+.btn-text:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.btn-text:active { transform: scale(0.96); }
 
 .file-input { display: none; }
 
@@ -187,6 +189,9 @@ async function handleImport(e: Event) {
 .error-content { flex: 1; }
 .error-title { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; }
 .error-detail { font-size: 13px; color: var(--color-text-secondary); }
+
+/* 触摸优化 */
+.btn-primary, .btn-secondary, .btn-text, .back-link { touch-action: manipulation; }
 
 /* 动画 */
 .spin { animation: spin 0.8s linear infinite; }

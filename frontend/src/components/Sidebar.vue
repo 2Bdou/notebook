@@ -506,12 +506,21 @@ async function onDeleteTag(tag: Tag) {
   font-size: 14px;
   color: var(--color-sidebar-text);
   padding: 6px 0;
-  min-height: 32px;
+  min-height: 44px;
   transition: color var(--transition-fast);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
 }
 
 .trash-link:hover {
   color: #f1f5f9;
+}
+.trash-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.trash-link:active {
+  transform: scale(0.96);
 }
 
 /* 用户信息区 */
