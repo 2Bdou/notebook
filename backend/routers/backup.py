@@ -129,7 +129,8 @@ async def import_backup(
 ):
     """上传 JSON 文件导入到当前用户名下
 
-    分类/标签按名称合并，笔记全部新建。
+    分类/标签按名称合并（分类层级由 parent_name 重建），笔记全部新建。
+    整个导入在一个事务中完成：任一步失败则全部回滚，不留半截数据。
     返回导入统计信息。
     """
     user_id = user["id"]
@@ -146,99 +147,153 @@ async def import_backup(
 
     if not isinstance(data, dict) or "notes" not in data:
         raise HTTPException(status_code=400, detail="无效的备份文件格式")
-
-    # 开启外键
-    await db.execute("PRAGMA foreign_keys = ON")
+    if not isinstance(data.get("notes"), list):
+        raise HTTPException(status_code=400, detail="无效的备份文件格式：notes 必须是数组")
 
     imported_categories = 0
     imported_tags = 0
     imported_notes = 0
 
-    # 1) 导入分类：按 name 合并
-    cat_name_to_id: dict[str, int] = {}
-    # 先加载已有分类
-    cursor = await db.execute(
-        "SELECT id, name FROM categories WHERE user_id = ?", (user_id,)
-    )
-    existing_cats = await cursor.fetchall()
-    await cursor.close()
-    for c in existing_cats:
-        cat_name_to_id[c["name"]] = c["id"]
+    # 整个导入放入一个显式事务：任一步失败则整体回滚，不留半截数据。
+    await db.execute("PRAGMA foreign_keys = ON")
+    try:
+        await db.execute("BEGIN IMMEDIATE")
 
-    for cat in data.get("categories", []):
-        name = cat.get("name", "").strip()
-        if not name or name in cat_name_to_id:
-            continue
+        # 1) 导入分类：按 name 合并，并按 parent_name 重建树形层级
+        cat_name_to_id: dict[str, int] = {}
         cursor = await db.execute(
-            "INSERT INTO categories (name, sort_order, user_id) VALUES (?, ?, ?)",
-            (name, cat.get("sort_order", 0), user_id),
+            "SELECT id, name FROM categories WHERE user_id = ?", (user_id,)
         )
-        await db.commit()
-        cat_name_to_id[name] = cursor.lastrowid
-        imported_categories += 1
+        existing_cats = await cursor.fetchall()
         await cursor.close()
+        for c in existing_cats:
+            cat_name_to_id.setdefault(c["name"], c["id"])
 
-    # 2) 导入标签：按 name 合并
-    tag_name_to_id: dict[str, int] = {}
-    cursor = await db.execute(
-        "SELECT id, name FROM tags WHERE user_id = ?", (user_id,)
-    )
-    existing_tags = await cursor.fetchall()
-    await cursor.close()
-    for t in existing_tags:
-        tag_name_to_id[t["name"]] = t["id"]
+        # 收集本次需要新建的分类（去重、跳过已存在的）
+        pending: list[dict] = []
+        pending_names: set[str] = set()
+        for cat in data.get("categories", []) or []:
+            if not isinstance(cat, dict):
+                continue
+            name = str(cat.get("name", "")).strip()
+            if not name or name in cat_name_to_id or name in pending_names:
+                continue
+            parent_name = cat.get("parent_name")
+            parent_name = str(parent_name).strip() if parent_name else None
+            if parent_name == name:
+                parent_name = None  # 自引用，丢弃该父级
+            try:
+                sort_order = int(cat.get("sort_order", 0) or 0)
+            except (TypeError, ValueError):
+                sort_order = 0
+            pending.append({"name": name, "parent_name": parent_name, "sort_order": sort_order})
+            pending_names.add(name)
 
-    for tag in data.get("tags", []):
-        name = tag.get("name", "").strip()
-        if not name or name in tag_name_to_id:
-            continue
+        # 迭代插入：父级已知（已存在或刚创建）才能创建子级；
+        # 剩余无法解析（父级缺失或互为环）的作为根分类导入，避免数据丢失。
+        while pending:
+            deferred: list[dict] = []
+            progress = False
+            for item in pending:
+                parent_name = item["parent_name"]
+                if parent_name is not None and parent_name not in cat_name_to_id:
+                    deferred.append(item)
+                    continue
+                parent_id = cat_name_to_id.get(parent_name) if parent_name else None
+                cursor = await db.execute(
+                    "INSERT INTO categories (name, parent_id, sort_order, user_id) VALUES (?, ?, ?, ?)",
+                    (item["name"], parent_id, item["sort_order"], user_id),
+                )
+                cat_name_to_id[item["name"]] = cursor.lastrowid
+                await cursor.close()
+                imported_categories += 1
+                progress = True
+            if progress:
+                pending = deferred
+                continue
+            # 再多一轮也没有进展：父级缺失或互相成环，降级为根分类导入
+            for item in deferred:
+                cursor = await db.execute(
+                    "INSERT INTO categories (name, parent_id, sort_order, user_id) VALUES (?, ?, ?, ?)",
+                    (item["name"], None, item["sort_order"], user_id),
+                )
+                cat_name_to_id[item["name"]] = cursor.lastrowid
+                await cursor.close()
+                imported_categories += 1
+            pending = []
+
+        # 2) 导入标签：按 name 合并
+        tag_name_to_id: dict[str, int] = {}
         cursor = await db.execute(
-            "INSERT INTO tags (name, user_id) VALUES (?, ?)",
-            (name, user_id),
+            "SELECT id, name FROM tags WHERE user_id = ?", (user_id,)
         )
-        await db.commit()
-        tag_name_to_id[name] = cursor.lastrowid
-        imported_tags += 1
+        existing_tags = await cursor.fetchall()
         await cursor.close()
+        for t in existing_tags:
+            tag_name_to_id.setdefault(t["name"], t["id"])
 
-    # 3) 导入笔记
-    for note in data.get("notes", []):
-        title = note.get("title", "")
-        content = note.get("content", "")
-        content_html = note.get("content_html", "")
-        is_pinned = note.get("is_pinned", 0)
-        word_count = note.get("word_count", len(content))
-        created_at = note.get("created_at", datetime.now().isoformat())
-        updated_at = note.get("updated_at", datetime.now().isoformat())
+        for tag in data.get("tags", []) or []:
+            if not isinstance(tag, dict):
+                continue
+            name = str(tag.get("name", "")).strip()
+            if not name or name in tag_name_to_id:
+                continue
+            cursor = await db.execute(
+                "INSERT INTO tags (name, user_id) VALUES (?, ?)",
+                (name, user_id),
+            )
+            tag_name_to_id[name] = cursor.lastrowid
+            await cursor.close()
+            imported_tags += 1
 
-        # 分类映射
-        category_name = note.get("category_name")
-        category_id = cat_name_to_id.get(category_name) if category_name else None
+        # 3) 导入笔记
+        for note in data.get("notes", []):
+            if not isinstance(note, dict):
+                continue
+            title = str(note.get("title", "") or "")
+            content = str(note.get("content", "") or "")
+            content_html = str(note.get("content_html", "") or "")
+            is_pinned = 1 if note.get("is_pinned") in (1, True, "1", "true") else 0
+            try:
+                word_count = int(note.get("word_count") or len(content))
+            except (TypeError, ValueError):
+                word_count = len(content)
+            created_at = note.get("created_at") or datetime.now().isoformat()
+            updated_at = note.get("updated_at") or datetime.now().isoformat()
 
-        cursor = await db.execute(
-            """INSERT INTO notes (title, content, content_html, category_id,
-               is_pinned, word_count, user_id, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (title, content, content_html, category_id, is_pinned,
-             word_count, user_id, created_at, updated_at),
-        )
+            # 分类映射
+            category_name = note.get("category_name")
+            category_id = cat_name_to_id.get(str(category_name).strip()) if category_name else None
+
+            cursor = await db.execute(
+                """INSERT INTO notes (title, content, content_html, category_id,
+                   is_pinned, word_count, user_id, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (title, content, content_html, category_id, is_pinned,
+                 word_count, user_id, str(created_at), str(updated_at)),
+            )
+            new_note_id = cursor.lastrowid
+            await cursor.close()
+            imported_notes += 1
+
+            # 关联标签
+            for tag_name in note.get("tag_names", []) or []:
+                tag_id = tag_name_to_id.get(str(tag_name).strip())
+                if not tag_id:
+                    continue
+                cursor = await db.execute(
+                    "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+                    (new_note_id, tag_id),
+                )
+                await cursor.close()
+
         await db.commit()
-        new_note_id = cursor.lastrowid
-        imported_notes += 1
-        await cursor.close()
-
-        # 关联标签
-        for tag_name in note.get("tag_names", []):
-            tag_id = tag_name_to_id.get(tag_name.strip())
-            if tag_id:
-                try:
-                    await db.execute(
-                        "INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)",
-                        (new_note_id, tag_id),
-                    )
-                    await db.commit()
-                except aiosqlite.IntegrityError:
-                    pass  # 重复关联，忽略
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"导入失败，数据已回滚: {exc}")
 
     return {
         "code": 0,

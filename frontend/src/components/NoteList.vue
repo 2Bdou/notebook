@@ -207,7 +207,7 @@ function showAllNotes() { noteStore.clearFilters() }
 const expandedSections = reactive({ category: false, tag: false })
 function toggleSection(key: 'category' | 'tag') { expandedSections[key] = !expandedSections[key] }
 
-// ====== 手机端：展平分类树为 select 选项 ======
+// ====== 手机端：展平分类树为 select 选项（保留层级缩进） ======
 const flatCategories = computed(() => {
   const result: { id: number; label: string }[] = []
   function flatten(cats: Category[], depth: number) {
@@ -216,7 +216,7 @@ const flatCategories = computed(() => {
       if (c.children?.length) flatten(c.children, depth + 1)
     }
   }
-  flatten(categoryStore.categories, 0)
+  flatten(categoryStore.categoryTree, 0)
   return result
 })
 
@@ -327,8 +327,17 @@ async function quickDelete() {
 
 // ====== 工具函数 ======
 function getSummary(content: string): string { return content.replace(/[#*`>\-\[\]()!]/g, '').trim().slice(0, 80) || '无内容' }
+function parseServerDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null
+  // 后端 datetime('now') 是 UTC 且无时区后缀，显式补 Z 避免被当成本地时间解析
+  let norm = dateStr.replace(' ', 'T')
+  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(norm)) norm += 'Z'
+  const d = new Date(norm)
+  return Number.isNaN(d.getTime()) ? null : d
+}
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr.replace(' ', 'T'))
+  const d = parseServerDate(dateStr)
+  if (!d) return dateStr
   const diff = Date.now() - d.getTime()
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'

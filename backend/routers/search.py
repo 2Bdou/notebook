@@ -5,7 +5,7 @@
 from typing import Optional
 
 import aiosqlite
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from database import get_db
 from deps import get_current_user
@@ -20,8 +20,8 @@ async def search(
     q: Optional[str] = None,
     category_id: Optional[int] = None,
     tag_id: Optional[int] = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):

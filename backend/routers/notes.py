@@ -7,7 +7,7 @@
 from typing import Optional
 
 import aiosqlite
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from database import get_db
 from deps import get_current_user
@@ -27,8 +27,8 @@ async def list_notes(
     q: Optional[str] = None,
     sort: str = "updated_at",
     order: str = "desc",
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -49,8 +49,8 @@ async def list_notes(
 
 @router.get("/trash")
 async def get_trash(
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -68,7 +68,10 @@ async def create_note(
     current_user: dict = Depends(get_current_user),
 ):
     """新建笔记"""
-    item = await note_model.create_note(db, current_user["id"], body.model_dump())
+    try:
+        item = await note_model.create_note(db, current_user["id"], body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return ok(item, message="创建成功")
 
 
@@ -115,9 +118,12 @@ async def update_note(
     current_user: dict = Depends(get_current_user),
 ):
     """更新笔记"""
-    item = await note_model.update_note(
-        db, note_id, current_user["id"], body.model_dump(exclude_unset=True)
-    )
+    try:
+        item = await note_model.update_note(
+            db, note_id, current_user["id"], body.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if not item:
         raise HTTPException(status_code=404, detail="笔记不存在")
     return ok(item, message="更新成功")

@@ -14,9 +14,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     proxy: {
-      // 开发环境下将 /api 请求代理到后端服务
+      // 开发环境下将 /api 请求代理到后端服务（后端默认 8000，见 README 与 docker-compose）
       '/api': {
-        target: 'http://localhost:8002',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8000',
         changeOrigin: true
       }
     }

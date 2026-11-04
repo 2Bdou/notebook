@@ -22,11 +22,12 @@ async def lifespan(app: FastAPI):
 # 创建 FastAPI 应用实例
 app = FastAPI(title="记事本 API", version="1.1.0", lifespan=lifespan)
 
-# 启用 CORS（开发阶段允许所有来源访问）
+# 启用 CORS（bearer token 不依赖 cookie，allow_credentials=False；
+# 跨域来源通过 CORS_ORIGINS 环境变量收紧，默认 *）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

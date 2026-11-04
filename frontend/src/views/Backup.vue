@@ -102,7 +102,7 @@ async function handleExport() {
   try {
     await exportBackup()
   } catch (err: any) {
-    errorMsg.value = err?.message || '导出失败'
+    errorMsg.value = err?.response?.data?.detail || err?.message || '导出失败'
   } finally {
     exporting.value = false
   }
@@ -130,7 +130,7 @@ async function handleImport(e: Event) {
       tagStore.fetchTags(),
     ])
   } catch (err: any) {
-    errorMsg.value = err?.message || '导入失败'
+    errorMsg.value = err?.response?.data?.detail || err?.message || '导入失败'
   } finally {
     importing.value = false
     target.value = '' // 清空 input 以便重复选同一文件

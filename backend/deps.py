@@ -17,7 +17,9 @@ from database import get_db
 from models import user as user_model
 
 # HTTP Bearer 认证方案：从 Authorization: Bearer <token> 头提取 token
-security = HTTPBearer()
+# auto_error=False：缺少/格式错误的令牌时由 get_current_user 统一返回 401，
+# 默认行为是 403，会让前端拦截器错过「token 失效 → 跳转登录页」的处理。
+security = HTTPBearer(auto_error=False)
 
 
 def create_access_token(user_id: int) -> str:
@@ -33,13 +35,15 @@ def create_access_token(user_id: int) -> str:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> dict:
     """从 Bearer token 解析当前用户，失败抛 401
 
     返回的 dict 包含 id, username, password_hash, created_at 等字段。
     """
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="未提供认证令牌")
     token = credentials.credentials
     try:
         payload = jwt.decode(
@@ -61,6 +65,9 @@ async def get_current_user(
 
 # 单 IP 注册计数：{ip: deque([timestamp, ...])}
 _ip_register_log: defaultdict[str, deque] = defaultdict(deque)
+
+# 单 IP 认证请求计数：{ip: deque([timestamp, ...])}
+_ip_auth_log: defaultdict[str, deque] = defaultdict(deque)
 
 # 全局认证请求计数：deque([timestamp, ...])
 _global_auth_log: deque = deque()
@@ -89,6 +96,30 @@ def check_registration_ip_limit(request: Request) -> None:
         raise HTTPException(
             status_code=429,
             detail=f"该 IP 注册过于频繁，每小时最多 {settings.REGISTRATION_IP_HOURLY_LIMIT} 次，请稍后再试",
+        )
+
+    log.append(now)
+
+
+def check_auth_ip_limit(request: Request) -> None:
+    """检查认证接口单 IP 每分钟请求数（防暴力破解 / 撞库）
+
+    单 IP 限制远高于默认全局限制（见 config.AUTH_IP_RATE_LIMIT_PER_MINUTE），
+    正常用户不会触发，只拦截来自同一来源的高频尝试。
+
+    作为 FastAPI 依赖使用：Depends(check_auth_ip_limit)
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    window = 60  # 1 分钟窗口
+
+    log = _ip_auth_log[client_ip]
+    _cleanup_old(log, window)
+
+    if len(log) >= settings.AUTH_IP_RATE_LIMIT_PER_MINUTE:
+        raise HTTPException(
+            status_code=429,
+            detail="该 IP 请求过于频繁，请稍后再试",
         )
 
     log.append(now)

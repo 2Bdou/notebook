@@ -72,8 +72,9 @@ async def get_notes(
 
     where_sql = " AND ".join(where)
 
-    # 排序方向
+    # 排序方向（加 id 作为次级排序键，避免时间戳相同时分页重复/丢失）
     direction = "DESC" if order == "desc" else "ASC"
+    secondary = direction
     # 排序方式映射
     field_map = {
         "updated_at": "updated_at",
@@ -82,7 +83,7 @@ async def get_notes(
         "word_count": "word_count",
     }
     order_field = field_map.get(sort, "updated_at")
-    order_sql = f"{order_field} {direction}"
+    order_sql = f"{order_field} {direction}, id {secondary}"
     # 置顶笔记始终排在最前
     order_sql = f"is_pinned DESC, {order_sql}"
 
@@ -157,7 +158,7 @@ async def search_notes(
     list_sql = (
         f"SELECT *, {relevance_sql} as _relevance FROM notes "
         f"WHERE {where_sql} "
-        f"ORDER BY _relevance DESC, is_pinned DESC, updated_at DESC "
+        f"ORDER BY _relevance DESC, is_pinned DESC, updated_at DESC, id DESC "
         f"LIMIT ? OFFSET ?"
     )
     async with db.execute(
@@ -196,8 +197,39 @@ async def get_note_by_id(
     return item
 
 
+async def _validate_note_refs(
+    db: aiosqlite.Connection, user_id: int, data: dict
+) -> None:
+    """校验笔记引用的 category_id 与 tag_ids 归属于当前用户。
+
+    不校验会让用户 A 把笔记挂到用户 B 的分类/标签上（越权绑定）。
+    校验失败抛 ValueError，由路由层转换为 400。
+    """
+    if "category_id" in data and data["category_id"] is not None:
+        cat_id = data["category_id"]
+        async with db.execute(
+            "SELECT 1 FROM categories WHERE id = ? AND user_id = ?", (cat_id, user_id)
+        ) as cur:
+            if await cur.fetchone() is None:
+                raise ValueError("分类不存在或不属于当前用户")
+
+    tag_ids = data.get("tag_ids")
+    if tag_ids is not None:
+        ids = list({int(t) for t in tag_ids})
+        if ids:
+            placeholders = ",".join("?" for _ in ids)
+            async with db.execute(
+                f"SELECT COUNT(*) FROM tags WHERE user_id = ? AND id IN ({placeholders})",
+                [user_id, *ids],
+            ) as cur:
+                owned = (await cur.fetchone())[0]
+            if owned != len(ids):
+                raise ValueError("标签不存在或不属于当前用户")
+
+
 async def create_note(db: aiosqlite.Connection, user_id: int, data: dict) -> dict:
-    """新建笔记，并关联标签"""
+    """新建笔记，并关联标签（分类/标签必须归属当前用户）"""
+    await _validate_note_refs(db, user_id, data)
     word_count = len(data.get("content", "") or "")
     sql = """
     INSERT INTO notes (title, content, content_html, category_id, is_pinned, word_count, user_id)
@@ -229,11 +261,14 @@ async def update_note(
     db: aiosqlite.Connection, note_id: int, user_id: int, data: dict
 ) -> Optional[dict]:
     """更新笔记（仅更新请求中提供的字段），并可替换标签关联"""
+    await _validate_note_refs(db, user_id, data)
     fields: list[str] = []
     params: list = []
 
     for key in ("title", "content", "content_html", "category_id"):
-        if data.get(key) is not None:
+        # category_id 显式传 null 表示移出分类（置 NULL），必须落库；
+        # 其余字段 None 表示未提供，跳过。
+        if key in data and (data[key] is not None or key == "category_id"):
             fields.append(f"{key} = ?")
             params.append(data[key])
     if data.get("is_pinned") is not None:

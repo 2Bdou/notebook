@@ -29,6 +29,8 @@ async def create_category(
 ):
     """新建分类"""
     item = await category_model.create_category(db, current_user["id"], body.model_dump())
+    if not item:
+        raise HTTPException(status_code=400, detail="父分类不存在或不属于当前用户")
     return ok(item, message="创建成功")
 
 

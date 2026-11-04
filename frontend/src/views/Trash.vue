@@ -78,7 +78,9 @@ function getSummary(content: string): string {
 }
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '未知'
-  const d = new Date(dateStr.replace(' ', 'T'))
+  const norm = dateStr.replace(' ', 'T') + (/[zZ]|[+-]\d{2}:?\d{2}$/.test(dateStr) ? '' : 'Z')
+  const d = new Date(norm)
+  if (Number.isNaN(d.getTime())) return dateStr
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 </script>

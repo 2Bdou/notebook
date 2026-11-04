@@ -4,7 +4,7 @@
 1. 注册开关（ALLOW_REGISTRATION=false 时拒绝注册）
 2. 邀请码（REGISTRATION_CODE 设置后注册必须提供正确码）
 3. 单 IP 每小时注册次数限制
-4. 认证接口全局速率限制（防暴力破解）
+4. 认证接口全局速率限制 + 单 IP 每分钟速率限制（防暴力破解）
 """
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -16,6 +16,7 @@ from deps import (
     create_access_token,
     check_registration_ip_limit,
     check_auth_rate_limit,
+    check_auth_ip_limit,
 )
 from models import user as user_model
 from schemas import ok
@@ -31,6 +32,7 @@ async def register(
     db: aiosqlite.Connection = Depends(get_db),
     _ip_limit: None = Depends(check_registration_ip_limit),
     _rate_limit: None = Depends(check_auth_rate_limit),
+    _ip_auth_limit: None = Depends(check_auth_ip_limit),
 ):
     """用户注册
 
@@ -39,6 +41,7 @@ async def register(
     - REGISTRATION_CODE 设置后必须提供正确邀请码
     - 单 IP 每小时最多注册 REGISTRATION_IP_HOURLY_LIMIT 次
     - 全局每分钟最多 AUTH_RATE_LIMIT_PER_MINUTE 次认证请求
+    - 单 IP 每分钟最多 AUTH_IP_RATE_LIMIT_PER_MINUTE 次认证请求
     """
     # ① 注册开关
     if not settings.ALLOW_REGISTRATION:
@@ -77,10 +80,11 @@ async def login(
     request: Request,
     db: aiosqlite.Connection = Depends(get_db),
     _rate_limit: None = Depends(check_auth_rate_limit),
+    _ip_auth_limit: None = Depends(check_auth_ip_limit),
 ):
     """用户登录：验证用户名密码，返回 JWT token
 
-    安全控制：全局每分钟最多 AUTH_RATE_LIMIT_PER_MINUTE 次认证请求
+    安全控制：全局每分钟最多 AUTH_RATE_LIMIT_PER_MINUTE 次 + 单 IP 每分钟最多 AUTH_IP_RATE_LIMIT_PER_MINUTE 次认证请求
     """
     user = await user_model.authenticate_user(db, body.username, body.password)
     if not user:
