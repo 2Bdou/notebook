@@ -415,7 +415,7 @@ onUnmounted(() => { document.removeEventListener('click', closeContextMenu) })
 
 /* ====== 排序栏 ====== */
 .sort-bar { display: flex; align-items: center; gap: 6px; padding: 6px var(--space-3); border-bottom: 1px solid var(--color-border-light); background: var(--color-bg); }
-.sort-select { flex: 1; padding: 10px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 14px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 44px; }
+.sort-select { flex: 1; padding: 10px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 16px; background: var(--color-bg-card); color: var(--color-text-primary); cursor: pointer; min-height: 44px; }
 .sort-select:focus { border-color: var(--color-primary); }
 .sort-order-btn { padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); min-height: 44px; min-width: 44px; }
 .sort-order-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }

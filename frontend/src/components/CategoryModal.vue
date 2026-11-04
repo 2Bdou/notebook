@@ -98,9 +98,9 @@ onMounted(() => { nextTick(() => nameInput.value?.focus()) })
 .modal-body { padding: var(--space-5); }
 .form-field { margin-bottom: var(--space-4); }
 .field-label { display: block; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; font-weight: 500; }
-.field-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 14px; box-sizing: border-box; background: var(--color-bg-card); color: var(--color-text-primary); transition: border-color var(--transition-fast); }
+.field-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 16px; box-sizing: border-box; background: var(--color-bg-card); color: var(--color-text-primary); transition: border-color var(--transition-fast); }
 .field-input:focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 3px var(--color-primary-bg); }
-.parent-select { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 14px; background: var(--color-bg-card); color: var(--color-text-primary); transition: border-color var(--transition-fast); }
+.parent-select { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-size: 16px; background: var(--color-bg-card); color: var(--color-text-primary); transition: border-color var(--transition-fast); }
 .parent-select:hover { border-color: var(--color-primary); }
 .parent-select:active { border-color: var(--color-primary); }
 .dropdown-arrow { color: var(--color-text-tertiary); flex-shrink: 0; }
